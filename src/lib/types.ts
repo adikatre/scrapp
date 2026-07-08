@@ -1,44 +1,31 @@
-export type PredictionObjects =
-  | "bottle"
-  | "wine glass"
-  | "cup"
-  | "bowl"
-  | "fork"
-  | "knife"
-  | "spoon"
-  | "vase"
-  | "chair"
-  | "bench"
-  | "laptop"
-  | "mouse"
-  | "keyboard"
-  | "cell phone"
-  | "banana"
-  | "apple"
-  | "orange"
-  | "broccoli"
-  | "carrot"
-  | "pizza"
-  | "donut"
-  | "cake"
-  | "sandwich"
-  | "hot dog"
-  | "handbag"
-  | "backpack"
-  | "umbrella";
-
 export type PredictionRoutes = string;
+
+export type ClassifiedItem = {
+  name: string;
+  material: string;
+  route: PredictionRoutes;
+  confidence: number;
+  caveats: string;
+};
+
+export type ClassifierMetadata = {
+  model: string;
+  source: string;
+  fallback_used: boolean;
+};
 
 export type Detection = {
   bbox: [number, number, number, number];
-  class_name: PredictionObjects;
+  class_name: string;
   confidence: number;
   route: PredictionRoutes;
 };
 
 export type PredictionResult = {
-  objects: PredictionObjects[];
+  objects: string[];
   bin_totals: Record<string, number>;
   detections: Detection[];
-  text: string;
+  text?: string;
+  items?: ClassifiedItem[];
+  classifier?: ClassifierMetadata;
 };

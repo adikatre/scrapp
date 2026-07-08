@@ -19,9 +19,15 @@ export async function predict(formData: FormData): Promise<PredictReturnType> {
     const res = await fetch(url, {
       method: "POST",
       body: formData
-    }).then((res) => res.json());
+    });
 
-    return [BaseStates.SUCCESS, res];
+    if (!res.ok) {
+      console.warn(`[backend.ts] predict failed with status ${res.status}`);
+      return [BaseStates.ERROR, null];
+    }
+
+    const data = (await res.json()) as PredictionResult;
+    return [BaseStates.SUCCESS, data];
   } catch (e) {
     console.warn(e);
 

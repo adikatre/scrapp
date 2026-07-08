@@ -63,6 +63,24 @@ export function dataURLtoFile(dataUrl: string, filename: string) {
 }
 
 export function summarizePrediction(p: PredictionResult) {
+  if (p.text) {
+    let msg = p.text;
+
+    if (p.items && p.items.length > 0) {
+      msg += "\n\n";
+      p.items.forEach((item) => {
+        msg += `${item.name} (${item.material}): ${item.route}\n`;
+      });
+    } else if (p.detections.length > 0) {
+      msg += "\n\n";
+      p.detections.forEach((detection) => {
+        msg += `${detection.class_name}: ${detection.route}\n`;
+      });
+    }
+
+    return msg;
+  }
+
   let msg = "Found: ";
 
   p.objects.forEach((object) => (msg += `${object}, `));
@@ -72,11 +90,6 @@ export function summarizePrediction(p: PredictionResult) {
   detections.forEach((detection) => {
     msg += `${detection.class_name}: ${detection.route}\n`;
   });
-
-  if(p.text) {
-    msg += "\n\n";
-    msg += p.text;
-  }
 
   return msg;
 }
