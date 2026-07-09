@@ -2,76 +2,65 @@
 
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import MobileChatPage from "@/app/cam/MobileChatPage";
-import DesktopChatPage from "@/app/cam/DesktopChatPage";
+import MobileScanPage from "@/app/cam/MobileScanPage";
+import DesktopScanPage from "@/app/cam/DesktopScanPage";
 import useMediaQuery from "@/hooks/useMediaQuery";
+import { ScanTicket } from "@/lib/types";
 
-interface Message {
-  id: string;
-  message: string;
-  image?: string | null;
-  isUser: boolean;
-  timestamp: Date;
-  disposalRoute?: string;
-  itemName?: string;
-}
-
-export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>([]);
+export default function CamPage() {
+  const [tickets, setTickets] = useState<ScanTicket[]>([]);
+  const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   const meetsQuery = useMediaQuery(1100);
 
-  const handleSendMessage = function (payload: {
-    text?: string;
-    image?: string | null;
+  const handleScanComplete = function (payload: {
+    image: string | null;
+    note?: string;
+    guidance: string;
+    disposalRoute: string;
+    itemName: string;
   }) {
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      {
-        id: `${Date.now()}-${Math.random()}`,
-        isUser: true,
-        message: payload.text ?? "",
-        image: payload.image ?? null,
-        timestamp: new Date()
-      }
-    ]);
+    const ticket: ScanTicket = {
+      id: `${Date.now()}-${Math.random()}`,
+      timestamp: new Date(),
+      ...payload
+    };
+    setTickets((prevTickets) => [ticket, ...prevTickets]);
+    setActiveTicketId(ticket.id);
   };
 
-  const handleAssistantMessage = function (payload: {
-    message: string;
-    disposalRoute?: string;
-    itemName?: string;
-  }) {
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      {
-        id: `${Date.now()}-${Math.random()}`,
-        isUser: false,
-        message: payload.message,
-        disposalRoute: payload.disposalRoute,
-        itemName: payload.itemName,
-        timestamp: new Date()
-      }
-    ]);
+  const handleSelectTicket = function (id: string) {
+    setActiveTicketId(id);
   };
+
+  const handleScanAgain = function () {
+    setActiveTicketId(null);
+  };
+
+  const activeTicket = tickets.find((ticket) => ticket.id === activeTicketId) ?? null;
+  const pastTickets = tickets.filter((ticket) => ticket.id !== activeTicketId);
 
   if (!meetsQuery) {
     return (
-      <MobileChatPage
-        messages={messages}
-        onSendMessage={handleSendMessage}
-        onAssistantMessage={handleAssistantMessage}
+      <MobileScanPage
+        activeTicket={activeTicket}
+        pastTickets={pastTickets}
+        onScanComplete={handleScanComplete}
+        onSelectTicket={handleSelectTicket}
+        onScanAgain={handleScanAgain}
         isMobile={isMobile ?? true}
       />
     );
   }
 
   return (
-    <DesktopChatPage
-      messages={messages}
-      onSendMessage={handleSendMessage}
-      onAssistantMessage={handleAssistantMessage}
+    <DesktopScanPage
+      activeTicket={activeTicket}
+      pastTickets={pastTickets}
+      onScanComplete={handleScanComplete}
+      onSelectTicket={handleSelectTicket}
+      onScanAgain={handleScanAgain}
     />
   );
 }

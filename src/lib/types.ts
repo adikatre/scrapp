@@ -54,3 +54,13 @@ export type SavedLocationPrefs = {
   label: string;
   category: string;
 };
+
+export type ScanTicket = {
+  id: string;
+  image: string | null;
+  note?: string;
+  guidance: string;
+  disposalRoute: string;
+  itemName: string;
+  timestamp: Date;
+};
