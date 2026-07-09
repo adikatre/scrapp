@@ -243,7 +243,7 @@ export default function DesktopScanPage({
                   </Button>
                   <Button onClick={handleScan} className="flex-1">
                     <ScanLine className="size-4" />
-                    Scan
+                    Analyze
                   </Button>
                 </div>
               </div>
