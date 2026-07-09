@@ -29,6 +29,10 @@ import { predict } from "@/lib/backend";
 import { BaseStates } from "@/lib/states";
 import { toast } from "sonner";
 import { dataURLtoFile, summarizePrediction } from "@/lib/utils";
+import {
+  getDominantItemName,
+  getDominantRoute
+} from "@/lib/locationCategories";
 
 interface Message {
   id: string;
@@ -36,12 +40,18 @@ interface Message {
   image?: string | null;
   isUser: boolean;
   timestamp: Date;
+  disposalRoute?: string;
+  itemName?: string;
 }
 
 interface DesktopChatPageProps {
   messages: Message[];
   onSendMessage: (payload: { text?: string; image?: string | null }) => void;
-  onAssistantMessage: (message: string) => void;
+  onAssistantMessage: (payload: {
+    message: string;
+    disposalRoute?: string;
+    itemName?: string;
+  }) => void;
 }
 
 export default function DesktopChatPage({
@@ -148,7 +158,11 @@ export default function DesktopChatPage({
           const [state, res] = await predict(fd);
           if (state === BaseStates.ERROR || !res)
             return toast.error("Prediction failed");
-          onAssistantMessage(summarizePrediction(res));
+          onAssistantMessage({
+            message: summarizePrediction(res),
+            disposalRoute: getDominantRoute(res),
+            itemName: getDominantItemName(res)
+          });
         }
       } catch (e) {
         toast.error("Prediction error");

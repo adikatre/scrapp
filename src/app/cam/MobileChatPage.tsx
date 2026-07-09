@@ -31,6 +31,10 @@ import { predict } from "@/lib/backend";
 import { BaseStates } from "@/lib/states";
 import { PredictionResult } from "@/lib/types";
 import { dataURLtoFile, summarizePrediction } from "@/lib/utils";
+import {
+  getDominantItemName,
+  getDominantRoute
+} from "@/lib/locationCategories";
 
 interface Message {
   id: string;
@@ -38,12 +42,18 @@ interface Message {
   image?: string | null;
   isUser: boolean;
   timestamp: Date;
+  disposalRoute?: string;
+  itemName?: string;
 }
 
 interface MobileChatPageProps {
   messages: Message[];
   onSendMessage: (payload: { text?: string; image?: string | null }) => void;
-  onAssistantMessage: (message: string) => void;
+  onAssistantMessage: (payload: {
+    message: string;
+    disposalRoute?: string;
+    itemName?: string;
+  }) => void;
   isMobile: boolean;
 }
 
@@ -160,7 +170,11 @@ export default function MobileChatPage({
         if (fd.has("text") || fd.has("file")) {
           const [state, res] = await predict(fd);
           if (state === BaseStates.ERROR || !res) return;
-          onAssistantMessage(summarizePrediction(res));
+          onAssistantMessage({
+            message: summarizePrediction(res),
+            disposalRoute: getDominantRoute(res),
+            itemName: getDominantItemName(res)
+          });
         }
       } catch (e) {
         // ignore for now

@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { buildLocationsHref } from "@/lib/locationCategories";
 
 interface MessageBubbleProps {
   message?: string;
@@ -9,6 +10,8 @@ interface MessageBubbleProps {
   isUser: boolean;
   timestamp?: Date;
   onImageClick?: (src: string) => void;
+  disposalRoute?: string;
+  itemName?: string;
 }
 
 export function MessageBubble({
@@ -16,7 +19,9 @@ export function MessageBubble({
   image,
   isUser,
   timestamp,
-  onImageClick
+  onImageClick,
+  disposalRoute,
+  itemName
 }: MessageBubbleProps) {
   const hasText = !!(message && message.length > 0);
   const hasImage = !!image;
@@ -49,7 +54,7 @@ export function MessageBubble({
           <p className="text-sm whitespace-pre-wrap mb-3">{message}</p>
         )}
         {!isUser && (
-          <Link href={"/locations"}>
+          <Link href={buildLocationsHref(disposalRoute || "Recycle", itemName)}>
             <p className="text-blue-300 underline">
               Find disposal locations near you!
             </p>

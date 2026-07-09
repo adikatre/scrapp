@@ -29,3 +29,28 @@ export type PredictionResult = {
   items?: ClassifiedItem[];
   classifier?: ClassifierMetadata;
 };
+
+export type Place = {
+  id: string;
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  googleMapsUri?: string;
+  distanceMiles?: number;
+};
+
+export type PlaceDetails = Place & {
+  phone?: string;
+  website?: string;
+  rating?: number;
+  openNow?: boolean;
+  weekdayDescriptions?: string[];
+};
+
+export type SavedLocationPrefs = {
+  lat: number;
+  lng: number;
+  label: string;
+  category: string;
+};

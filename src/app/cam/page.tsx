@@ -12,6 +12,8 @@ interface Message {
   image?: string | null;
   isUser: boolean;
   timestamp: Date;
+  disposalRoute?: string;
+  itemName?: string;
 }
 
 export default function ChatPage() {
@@ -36,13 +38,19 @@ export default function ChatPage() {
     ]);
   };
 
-  const handleAssistantMessage = function (message: string) {
+  const handleAssistantMessage = function (payload: {
+    message: string;
+    disposalRoute?: string;
+    itemName?: string;
+  }) {
     setMessages((prevMessages) => [
       ...prevMessages,
       {
         id: `${Date.now()}-${Math.random()}`,
         isUser: false,
-        message,
+        message: payload.message,
+        disposalRoute: payload.disposalRoute,
+        itemName: payload.itemName,
         timestamp: new Date()
       }
     ]);
