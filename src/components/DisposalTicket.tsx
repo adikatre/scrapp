@@ -140,7 +140,8 @@ export function DisposalTicket({
           <Link
             href={buildLocationsHref(
               ticket.disposalRoute || "Recycle",
-              ticket.itemName
+              ticket.itemName,
+              ticket.searchQueries
             )}>
             <MapPin className="size-4" />
             Find disposal locations

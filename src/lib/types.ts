@@ -6,6 +6,8 @@ export type ClassifiedItem = {
   route: PredictionRoutes;
   confidence: number;
   caveats: string;
+  /** LLM-suggested Places text queries for this item (no location wording) */
+  search_queries?: string[];
 };
 
 export type ClassifierMetadata = {
@@ -62,5 +64,6 @@ export type ScanTicket = {
   guidance: string;
   disposalRoute: string;
   itemName: string;
+  searchQueries?: string[];
   timestamp: Date;
 };

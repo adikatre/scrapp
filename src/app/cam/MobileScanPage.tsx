@@ -23,7 +23,8 @@ import { ScanTicket } from "@/lib/types";
 import { dataURLtoFile, summarizePrediction } from "@/lib/utils";
 import {
   getDominantItemName,
-  getDominantRoute
+  getDominantRoute,
+  getDominantSearchQueries
 } from "@/lib/locationCategories";
 
 interface MobileScanPageProps {
@@ -35,6 +36,7 @@ interface MobileScanPageProps {
     guidance: string;
     disposalRoute: string;
     itemName: string;
+    searchQueries?: string[];
   }) => void;
   onSelectTicket: (id: string) => void;
   onScanAgain: () => void;
@@ -150,7 +152,8 @@ export default function MobileScanPage({
         note: trimmedNote || undefined,
         guidance: summarizePrediction(res),
         disposalRoute: getDominantRoute(res),
-        itemName: getDominantItemName(res)
+        itemName: getDominantItemName(res),
+        searchQueries: getDominantSearchQueries(res)
       });
       setCapturedImage(null);
       setNote("");

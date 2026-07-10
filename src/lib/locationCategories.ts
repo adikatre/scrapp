@@ -195,6 +195,11 @@ export function getDominantRoute(result: PredictionResult): string {
   return "";
 }
 
+export function getDominantSearchQueries(result: PredictionResult): string[] {
+  const bestItem = result.items ? pickBestClassifiedItem(result.items) : undefined;
+  return bestItem?.search_queries ?? [];
+}
+
 export function getDominantItemName(result: PredictionResult): string {
   const bestItem = result.items ? pickBestClassifiedItem(result.items) : undefined;
   if (bestItem) return bestItem.name;
@@ -208,20 +213,140 @@ export function getDominantItemName(result: PredictionResult): string {
   return "";
 }
 
+/** Categories where the scanned item refines the Places search query */
+const ITEM_QUERY_CATEGORIES: LocationCategoryKey[] = ["e_waste", "hazardous"];
+
+type ItemQueryRule = {
+  /** Case-insensitive substrings matched against the sanitized item name */
+  keywords: string[];
+  /** Places text query template (use {location} placeholder) */
+  searchQuery: string;
+  categories: LocationCategoryKey[];
+};
+
+const ITEM_QUERY_RULES: ItemQueryRule[] = [
+  {
+    keywords: ["battery", "batteries"],
+    searchQuery: "battery recycling drop-off {location}",
+    categories: ["e_waste", "hazardous"]
+  },
+  {
+    keywords: ["light bulb", "lightbulb", "cfl", "fluorescent", "led bulb"],
+    searchQuery: "light bulb recycling drop-off {location}",
+    categories: ["e_waste", "hazardous"]
+  },
+  {
+    keywords: ["paint", "varnish", "stain"],
+    searchQuery: "paint disposal drop-off site {location}",
+    categories: ["hazardous"]
+  },
+  {
+    keywords: ["motor oil", "engine oil", "used oil", "antifreeze"],
+    searchQuery: "used motor oil recycling drop-off {location}",
+    categories: ["hazardous"]
+  },
+  {
+    keywords: ["ink cartridge", "printer cartridge", "toner"],
+    searchQuery: "ink cartridge recycling drop-off {location}",
+    categories: ["e_waste"]
+  },
+  {
+    keywords: ["phone", "smartphone", "cell phone", "tablet", "laptop"],
+    searchQuery: "cell phone and electronics recycling drop-off {location}",
+    categories: ["e_waste"]
+  }
+];
+
+/** Item names arrive via a public URL param and feed a Places API query */
+function sanitizeItemName(raw: string | null | undefined): string {
+  if (!raw) return "";
+  return raw
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 40)
+    .trim();
+}
+
+export const MAX_ITEM_SEARCH_QUERIES = 4;
+
+/** Search queries arrive via public URL params ("q") and feed Places API queries */
+export function sanitizeSearchQueries(
+  raw: string[] | null | undefined
+): string[] {
+  if (!raw) return [];
+  const queries: string[] = [];
+  for (const entry of raw) {
+    const query = entry
+      .replace(/[^a-zA-Z0-9\s&'-]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 60)
+      .trim();
+    if (query && !queries.includes(query)) queries.push(query);
+    if (queries.length >= MAX_ITEM_SEARCH_QUERIES) break;
+  }
+  return queries;
+}
+
+function resolveItemQueryTemplate(
+  categoryKey: LocationCategoryKey,
+  item: string | null | undefined
+): string | undefined {
+  if (!ITEM_QUERY_CATEGORIES.includes(categoryKey)) return undefined;
+
+  const safeItem = sanitizeItemName(item);
+  if (!safeItem) return undefined;
+
+  const rule = ITEM_QUERY_RULES.find(
+    (r) =>
+      r.categories.includes(categoryKey) &&
+      r.keywords.some((kw) => safeItem.includes(kw))
+  );
+  if (rule) return rule.searchQuery;
+
+  return categoryKey === "hazardous"
+    ? `${safeItem} disposal drop-off {location}`
+    : `${safeItem} recycling drop-off {location}`;
+}
+
+export function itemAffectsSearch(
+  categoryKey: LocationCategoryKey,
+  item: string | null | undefined
+): boolean {
+  return resolveItemQueryTemplate(categoryKey, item) !== undefined;
+}
+
+/**
+ * When locationLabel is null the caller has real coordinates and relies on
+ * locationBias instead of "near ..." text (which anchors results to the
+ * label's geocode — or is junk when the label is "Your location").
+ */
 export function buildSearchQuery(
   category: LocationCategory,
-  locationLabel: string
+  locationLabel: string | null,
+  item?: string | null
 ): string {
-  const template = category.searchQuery ?? "recycling center {location}";
-  return template.replace("{location}", `near ${locationLabel}`);
+  const template =
+    resolveItemQueryTemplate(category.key, item) ??
+    category.searchQuery ??
+    "recycling center {location}";
+  return template
+    .replace("{location}", locationLabel ? `near ${locationLabel}` : "")
+    .trim();
 }
 
 export function buildLocationsHref(
   route: string,
-  itemName?: string
+  itemName?: string,
+  searchQueries?: string[]
 ): string {
   const category = routeToCategoryKey(route);
   const params = new URLSearchParams({ category });
   if (itemName) params.set("item", itemName);
+  for (const q of sanitizeSearchQueries(searchQueries)) {
+    params.append("q", q);
+  }
   return `/locations?${params.toString()}`;
 }

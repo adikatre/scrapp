@@ -3,6 +3,7 @@
 import {
   buildSearchQuery,
   getCategoryByKey,
+  sanitizeSearchQueries,
   type LocationCategoryKey
 } from "./locationCategories";
 import { Place, PlaceDetails } from "./types";
@@ -47,6 +48,9 @@ export async function searchPlaces(input: {
   locationLabel: string;
   lat?: number;
   lng?: number;
+  item?: string;
+  /** Item-specific Places queries (e.g. from the scan classifier); sanitized here */
+  queries?: string[];
 }): Promise<{ places: Place[]; error?: string }> {
   if (!PLACES_API_KEY) {
     return {
@@ -61,17 +65,58 @@ export async function searchPlaces(input: {
     return { places: [], error: "This category does not have physical locations." };
   }
 
-  const textQuery = buildSearchQuery(category, input.locationLabel);
+  const hasCoords = input.lat != null && input.lng != null;
+  // With real coordinates, locality comes from locationBias; "near <label>" text
+  // would anchor results to the label's geocode (or be junk for "Your location").
+  const baseQuery = buildSearchQuery(
+    category,
+    hasCoords ? null : input.locationLabel,
+    input.item
+  );
 
+  const itemQueries = sanitizeSearchQueries(input.queries).map((q) =>
+    hasCoords ? q : `${q} near ${input.locationLabel}`
+  );
+  const textQueries = [baseQuery, ...itemQueries.filter((q) => q !== baseQuery)];
+
+  const results = await Promise.all(
+    textQueries.map((textQuery) =>
+      runTextSearch(textQuery, input.lat, input.lng)
+    )
+  );
+
+  const seen = new Set<string>();
+  const merged: Place[] = [];
+  for (const result of results) {
+    for (const place of result.places) {
+      if (seen.has(place.id)) continue;
+      seen.add(place.id);
+      merged.push(place);
+    }
+  }
+
+  // Only surface an error when every query failed; partial results win.
+  const firstError = results.find((r) => r.error)?.error;
+  if (merged.length === 0 && firstError) {
+    return { places: [], error: firstError };
+  }
+  return { places: merged };
+}
+
+async function runTextSearch(
+  textQuery: string,
+  lat?: number,
+  lng?: number
+): Promise<{ places: Place[]; error?: string }> {
   const body: Record<string, unknown> = {
     textQuery,
     pageSize: 20
   };
 
-  if (input.lat != null && input.lng != null) {
+  if (lat != null && lng != null) {
     body.locationBias = {
       circle: {
-        center: { latitude: input.lat, longitude: input.lng },
+        center: { latitude: lat, longitude: lng },
         radius: 25000
       }
     };

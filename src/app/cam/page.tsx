@@ -20,6 +20,7 @@ export default function CamPage() {
     guidance: string;
     disposalRoute: string;
     itemName: string;
+    searchQueries?: string[];
   }) {
     const ticket: ScanTicket = {
       id: `${Date.now()}-${Math.random()}`,

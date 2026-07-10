@@ -19,6 +19,7 @@ import { LocationsMap } from "@/components/LocationsMap";
 import { getPlaceDetails, searchPlaces } from "@/lib/googlePlaces";
 import {
   getCategoryByKey,
+  itemAffectsSearch,
   LOCATION_CATEGORIES,
   type LocationCategoryKey
 } from "@/lib/locationCategories";
@@ -49,6 +50,10 @@ function LocationsPageContent() {
   const initialCategory =
     (searchParams.get("category") as LocationCategoryKey) || "recycle";
   const scannedItem = searchParams.get("item");
+  const scannedQueries = useMemo(
+    () => searchParams.getAll("q"),
+    [searchParams]
+  );
 
   const savedOnMount = useMemo(() => readSavedLocationPrefs(), []);
 
@@ -106,11 +111,20 @@ function LocationsPageContent() {
       const lat = opts?.lat ?? userCoords?.lat;
       const lng = opts?.lng ?? userCoords?.lng;
 
+      // Scanner-provided queries are tied to the scanned item's category;
+      // switching tabs falls back to the plain category search.
+      const itemQueries =
+        activeCategory === initialCategory && scannedQueries.length > 0
+          ? scannedQueries
+          : undefined;
+
       const { places: results, error: searchError } = await searchPlaces({
         categoryKey: activeCategory,
         locationLabel: label,
         lat,
-        lng
+        lng,
+        item: scannedItem ?? undefined,
+        queries: itemQueries
       });
 
       let sorted = results;
@@ -138,7 +152,15 @@ function LocationsPageContent() {
         });
       }
     },
-    [activeCategory, isSearchable, locationLabel, userCoords]
+    [
+      activeCategory,
+      initialCategory,
+      isSearchable,
+      locationLabel,
+      userCoords,
+      scannedItem,
+      scannedQueries
+    ]
   );
 
   useEffect(() => {
@@ -161,7 +183,9 @@ function LocationsPageContent() {
 
         if (cancelled) return;
 
-        if (permission.state === "granted") {
+        // "prompt" triggers the browser's permission dialog — without real
+        // coordinates the search can't be biased to truly nearby places.
+        if (permission.state === "granted" || permission.state === "prompt") {
           navigator.geolocation.getCurrentPosition(
             (pos) => {
               if (cancelled) return;
@@ -294,7 +318,11 @@ function LocationsPageContent() {
           </CardTitle>
           {scannedItem && category && (
             <p className="text-sm text-muted-foreground mt-1">
-              Showing {category.label} drop-offs for your{" "}
+              {(activeCategory === initialCategory &&
+                scannedQueries.length > 0) ||
+              itemAffectsSearch(activeCategory, scannedItem)
+                ? "Showing drop-off locations that accept your "
+                : `Showing ${category.label} drop-offs for your `}
               <span className="font-medium text-foreground">{scannedItem}</span>
             </p>
           )}
