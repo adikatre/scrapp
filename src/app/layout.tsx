@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 
 import { Toaster } from "@/components/ui/sonner";
 
@@ -28,6 +29,7 @@ export default function RootLayout({
           {children}
         </main>
         <Toaster richColors closeButton />
+        <Analytics />
       </body>
     </html>
   );
