@@ -2,7 +2,7 @@
 
 **Your constraint:** 5 hrs/week × 2 weeks = **~10 total working hours**. Every task below is sized to fit that. This guide is ruthlessly prioritized — do the tasks in order and skip anything marked *optional* until users exist.
 
-**Your context advantage:** The Congressional App Challenge 2026 submission deadline is **October 26, 2026 (12:00 pm ET)**, with judging in November and winners announced by December 31. Launching now gives you 3+ months of *real usage data* to put in your demo video — "412 real scans by 96 users in our district" beats any feature list a judge will see.
+**Your context:** Scrapp already won 4th place in the Congressional App Challenge 2025 — the recognition is done. That changes the goal of this plan: you're no longer optimizing for a demo video and a judging deadline, you're optimizing for **actual people using this to actually dispose of actual waste correctly**. That's a better problem to have. It also means the CAC win is a credibility asset you can *use* right now — "award-winning student app" opens doors (school admin, city officials, local press) that a random side project doesn't. Use that door, then build something that matters independent of the award.
 
 ---
 
@@ -13,9 +13,9 @@
 Why:
 - `yolov8x.pt` needs ~2–4 GB RAM and a beefy CPU. Hosting that costs $20–50/mo and is the single thing standing between you and a $5/mo backend.
 - Your `openai_classifier.py` already does the real work (item + material + route + confidence, structured JSON). YOLO's 80 COCO classes ("bottle", "cup") are strictly worse for waste routing than a vision LLM that can tell a #5 PP yogurt tub from a compostable one.
-- Cost reality: a 1280px `high`-detail image to GPT-4o-mini ≈ **$0.001–0.003 per scan**. $5 of OpenAI credit ≈ 2,000–5,000 scans. You will not outgrow this before the challenge ends.
+- Cost reality: a 1280px `high`-detail image to GPT-4o-mini ≈ **$0.001–0.003 per scan**. $5 of OpenAI credit ≈ 2,000–5,000 scans. At real usage levels this stays cheap for a long time.
 
-Keep YOLO in the repo behind an env flag (`USE_YOLO=false`) so you can still demo/discuss it as an engineering decision in your CAC video — judges like documented trade-offs.
+Keep YOLO in the repo behind an env flag (`USE_YOLO=false`) rather than deleting it — it's a reasonable fallback if OpenAI pricing/availability ever changes, and it's evidence of real engineering iteration if you ever write about this project.
 
 ---
 
@@ -62,33 +62,33 @@ You already have `manifest.ts` — finish the job:
 **Hour 5 — The feedback button (your accuracy metric)**
 Add a "Was this right? 👍 / 👎" prompt on the result screen, firing `result_feedback` with `correct: true/false` and the classified route. This single feature gives you:
 - Your headline quality metric (**classification accuracy as rated by real users**),
-- A CAC-video-ready chart,
-- A prioritized list of what the classifier gets wrong.
+- A prioritized list of what the classifier gets wrong,
+- Proof (not a guess) of whether the app is actually helping people dispose of things correctly.
 
 ### Week 2 — "Real people use it" (5 hours)
 
 **Hour 6 — Localize disposal rules (highest-impact product change)**
-Recycling rules are hyper-local — that's the whole reason your app needs to exist. Minimum viable version: hardcode YOUR city/county's actual rules (your municipal waste website lists accepted plastics by number, battery/e-waste drop-offs, compost availability) into the GPT system prompt in `openai_classifier.py`: *"You are advising residents of [City, State]. Curbside recycling accepts #1, #2, #5 plastics; glass goes to drop-off only; …"*. This turns generic advice into **correct local advice**, which is your moat and your CAC story ("built for our district").
+Recycling rules are hyper-local — that's the whole reason your app needs to exist. Minimum viable version: hardcode YOUR city/county's actual rules (your municipal waste website lists accepted plastics by number, battery/e-waste drop-offs, compost availability) into the GPT system prompt in `openai_classifier.py`: *"You are advising residents of [City, State]. Curbside recycling accepts #1, #2, #5 plastics; glass goes to drop-off only; …"*. This turns generic advice into **correct local advice**, which is the actual moat: it's the difference between an app people try once and an app people keep using because it's right about *their* bins.
 
 **Hour 7 — Polish the 3 screens users actually see**
 Scan page, result page, locations page. Fix the top papercut on each (you know what they are). Add a one-line "how it works" on the landing page with an install prompt.
 
 **Hours 8–9 — Distribution (this is where impact actually comes from)**
 Do all of these; each is ~20–30 min:
-1. **School**: Ask your environmental/green club and a science teacher to have one class scan 3 items each. Print a QR-code poster ("Not sure which bin? Scan it.") and put it next to the school's recycling bins — this is the perfect point-of-confusion placement.
-2. **City**: Email your city/county waste management department (find the recycling coordinator — they exist and they answer email). One paragraph: high school students, Congressional App Challenge, free app that reduces contamination, can we link your official rules / would you share it? A reply from them = a partnership slide in your CAC video.
-3. **Local subreddit / Nextdoor / Buy Nothing group**: one honest post — "We're high schoolers who built a free app that tells you which bin something goes in. Would love feedback."
-4. **Your congressperson's office**: they *run* the App Challenge in your district — email their district office now, tell them you're entering with a live app. Offices sometimes promote local student projects, and being on their radar before judging never hurts.
+1. **School**: Ask your environmental/green club and a science teacher to have one class scan 3 items each. Print a QR-code poster ("Not sure which bin? Scan it.") and put it next to the school's recycling bins — this is the perfect point-of-confusion placement. Lead with "this won 4th place in the Congressional App Challenge" when you ask — it's a real door-opener for getting a busy admin's yes.
+2. **City**: Email your city/county waste management department (find the recycling coordinator — they exist and they answer email). One paragraph: award-winning student project, free app that reduces contamination, can we link your official rules / would you share it with residents? A reply from them is a real partnership, not a checkbox — it means your local-rules data stays accurate and their department gets a free contamination-reduction tool.
+3. **Local subreddit / Nextdoor / Buy Nothing group / town Facebook group**: one honest post — "We built a free app that tells you which bin something goes in — it placed 4th nationally in the Congressional App Challenge. Would love feedback." The award is a credibility signal for strangers deciding whether to trust an app with their camera.
+4. **Local press**: a one-paragraph pitch to your local paper or patch.com — "local student's award-winning app now live for the whole community" is a genuinely easy local-news story, and local coverage is high-leverage distribution you can't otherwise buy.
 
 **Hour 10 — Measure, fix, write it down**
 1. Open PostHog: how many scans? What % 👎? What items fail?
 2. Fix the single biggest classifier failure (usually a prompt tweak in `openai_classifier.py`).
-3. Start `IMPACT.md` in the repo: launch date, users, scans, accuracy %, quotes from real users. Update weekly — this file *is* your CAC demo-video script.
+3. Start `IMPACT.md` in the repo: launch date, users, scans, accuracy %, quotes from real users, any partnerships. Update weekly — this is the record of whether the thing you built is actually working, independent of any award.
 
-### After the 2 weeks (maintenance mode, <1 hr/week until Oct 26)
+### After the 2 weeks (ongoing, <1 hr/week)
 - Weekly: check PostHog, fix one thing, update `IMPACT.md`.
-- ~2 weeks before Oct 26: record the demo video (screen capture of a real scan + your metrics + the local-rules story). Team of ≤4, at least half from your district — you already qualify.
-- *Optional if traction is real*: Play Store listing via [Bubblewrap](https://github.com/GoogleChromeLabs/bubblewrap) TWA wrapper ($25 one-time, ~3 hrs) — a store listing adds legitimacy and an installability metric.
+- Once you have real numbers (hundreds of scans, a school or city partnership): consider whether to enter a *new* iteration in the 2026 challenge (deadline **October 26, 2026, 12 pm ET** — re-entry with a live, improved product is allowed and a "now serving N real users" story is stronger than a prototype), but don't let that deadline drive scope — it's optional upside, not the goal.
+- *Optional if traction is real*: Play Store listing via [Bubblewrap](https://github.com/GoogleChromeLabs/bubblewrap) TWA wrapper ($25 one-time, ~3 hrs) — makes the app discoverable to people who wouldn't otherwise find a PWA.
 
 ---
 
@@ -107,17 +107,17 @@ Do all of these; each is ~20–30 min:
 | **Community partnerships** | Manual (IMPACT.md) | 1 (school club) | 2–3 (school + city dept.) |
 | **Cost per scan** | OpenAI usage dashboard / scans | ≤$0.005 | ≤$0.003 |
 
-**Impact metric that matters most for CAC:** estimated *contamination avoided* — every 👍 on a "this goes in trash/hazardous, not recycling" result is one contamination event prevented. Count those separately; it converts "app usage" into "environmental impact" in one sentence.
+**The metric that matters most for real-world impact:** estimated *contamination avoided* — every 👍 on a "this goes in trash/hazardous, not recycling" result is one contamination event prevented. Count those separately; it converts "app usage" into an actual environmental-impact number, which is the thing worth telling a city department or a reporter.
 
 ---
 
 ## 4. High-impact moves, ranked (if you only do five things)
 
-1. **Ship on a real domain with HTTPS this week.** A live URL changes every conversation from "we're building" to "try it right now."
-2. **Local rules in the prompt.** Generic recycling advice is a Google search; *your city's* advice is a product.
-3. **The 👍/👎 feedback loop.** It's your accuracy metric, your roadmap, and your best chart.
-4. **QR poster next to actual bins** (school first, then library/community center — ask permission, they say yes to students). Point-of-confusion distribution beats any social post.
-5. **Email the city recycling coordinator.** One real institutional partner is worth more to judges — and to actual impact — than 500 anonymous installs.
+1. **Ship on a real domain with HTTPS this week.** A live URL changes every conversation from "we built this last year" to "try it right now."
+2. **Local rules in the prompt.** Generic recycling advice is a Google search; *your city's* advice is a product people keep coming back to.
+3. **The 👍/👎 feedback loop.** It's your accuracy metric, your roadmap, and the proof that this actually helps.
+4. **QR poster next to actual bins** (school first, then library/community center — ask permission, they say yes to students, especially with the award behind you). Point-of-confusion distribution beats any social post.
+5. **Email the city recycling coordinator and local press.** One real institutional partner or one local news story reaches more people in a week than months of solo posting — and the CAC win is exactly the hook that makes both of those emails easy to write.
 
 ## 5. Things to deliberately NOT do in these 10 hours
 
@@ -127,7 +127,7 @@ Do all of these; each is ~20–30 min:
 
 ## Sources
 
-- [Congressional App Challenge — dates & rules](https://www.congressionalappchallenge.us/students/rules/) (deadline Oct 26, 2026, 12 pm ET; teams ≤4; any language/platform)
+- [Congressional App Challenge — dates & rules](https://www.congressionalappchallenge.us/students/rules/) (2026 deadline Oct 26, 12 pm ET; teams ≤4; any language/platform) — relevant only if you choose to re-enter with a future iteration; not a driver of this plan.
 - [Render vs Railway vs Fly.io pricing, 2026](https://dev.to/pavel-hostim/render-vs-railway-vs-flyio-pricing-compared-2026-2e5p) — Render free tier (spins down after 15 min) / $7 Starter; Railway $5 Hobby; Fly.io pay-as-you-go ~$8–25/mo
 - [Fly.io pricing](https://fly.io/pricing/)
 - OpenAI GPT-4o-mini vision pricing: platform.openai.com/pricing (~$0.001–0.003 per high-detail image at 1280px)
