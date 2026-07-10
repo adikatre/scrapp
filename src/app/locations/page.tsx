@@ -506,11 +506,6 @@ function LocationsPageContent() {
                                 </a>
                               </p>
                             )}
-                            {details.rating != null && (
-                              <p className="text-muted-foreground">
-                                Rating: {details.rating.toFixed(1)} / 5
-                              </p>
-                            )}
                             {details.weekdayDescriptions &&
                               details.weekdayDescriptions.length > 0 && (
                                 <ul className="text-muted-foreground space-y-0.5">
