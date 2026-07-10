@@ -109,6 +109,7 @@ const AnimatedStatistic = ({
 // The main component for your home page.
 export default function HomePage() {
   const [mainCardRef, isMainCardVisible] = useOnScreen({ threshold: 0.1 });
+  const [recyclablesRef, isRecyclablesVisible] = useOnScreen({ threshold: 0.15 });
   // Create a ref for the statistics section
   const statsSectionRef = useRef<HTMLElement>(null);
 
@@ -155,7 +156,7 @@ export default function HomePage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <p className="text-xl text-foreground/90">
-                  Confused about recycling? Scrapp makes it simple. Just snap a photo, and we'll tell you exactly how to dispose of your items properly. Then, we'll tell you where you can dispose of the item.
+                  Confused about recycling? Scrapp makes it simple. Just snap a photo, and we&apos;ll tell you exactly how to dispose of your items properly. Then, we&apos;ll tell you where you can dispose of the item.
                 </p>
                 <Button asChild size="lg" className="mt-4">
                   <Link href="/cam">
@@ -211,16 +212,13 @@ export default function HomePage() {
 
       <section className="py-20 bg-muted/67">
         {/* Fade-in animation for "lesser known recyclables" section */}
-        {(() => {
-          const [recyclablesRef, isRecyclablesVisible] = useOnScreen({ threshold: 0.15 });
-          return (
-            <div
-              ref={recyclablesRef}
-              className={cn(
-                "transform transition-all duration-1000 ease-out",
-                isRecyclablesVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-              )}
-            >
+        <div
+          ref={recyclablesRef}
+          className={cn(
+            "transform transition-all duration-1000 ease-out",
+            isRecyclablesVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+          )}
+        >
               <h2 className="text-3xl font-bold text-center mb-4">Lesser Known Recyclables</h2>
               <p className="text-muted-foreground text-center max-w-2xl mx-auto mb-12">
                 Did you know how to handle these waste items? Scrapp is here to help you learn and make informed decisions about recycling and waste disposal.
@@ -411,7 +409,7 @@ export default function HomePage() {
                       <h3 className="text-xl font-semibold text-foreground">Still Confused?</h3>
                     </div>
                     <p className="text-muted-foreground mb-4">
-                      Don't worry about memorizing all these rules. Just snap a photo of your item, and Scrapp will tell you exactly how to dispose of it properly!
+                      Don&apos;t worry about memorizing all these rules. Just snap a photo of your item, and Scrapp will tell you exactly how to dispose of it properly!
                     </p>
                     <Button asChild size="lg">
                       <Link href="/cam">
@@ -422,8 +420,6 @@ export default function HomePage() {
                 </Card>
               </div>
             </div>
-          );
-        })()}
       </section>
 
       {/* Footer */}
