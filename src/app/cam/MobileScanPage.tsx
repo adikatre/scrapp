@@ -1,8 +1,7 @@
 "use client";
 
-import { ChangeEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, KeyboardEvent, useRef, useState } from "react";
 import Webcam from "react-webcam";
-import { useNavbar } from "@/hooks/useNavbar";
 
 import {
   Camera as CameraIcon,
@@ -63,12 +62,6 @@ export default function MobileScanPage({
   const [selectedImageForViewer, setSelectedImageForViewer] = useState<
     string | null
   >(null);
-
-  const { setDefaultShown } = useNavbar();
-
-  useEffect(() => {
-    setDefaultShown(false);
-  }, [setDefaultShown]);
 
   const handleTextareaKeypress = function (
     e: KeyboardEvent<HTMLTextAreaElement>

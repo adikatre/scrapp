@@ -216,6 +216,157 @@ async function runTextSearch(
   }
 }
 
+export type LocationPrediction = {
+  placeId: string;
+  /** Full display text, e.g. "Palm Springs, CA, USA" */
+  text: string;
+  /** e.g. "Palm Springs" */
+  mainText: string;
+  /** e.g. "CA, USA" */
+  secondaryText: string;
+};
+
+/**
+ * City/zip autocomplete via the server-side Places API — uses the same
+ * GOOGLE_PLACES_API_KEY as text search, so it works regardless of which APIs
+ * the public browser Maps key has enabled.
+ */
+export async function autocompleteLocations(input: {
+  query: string;
+  /** Groups autocomplete + the follow-up place resolve for Google billing */
+  sessionToken?: string;
+  lat?: number;
+  lng?: number;
+}): Promise<{ predictions: LocationPrediction[]; error?: string }> {
+  if (!PLACES_API_KEY) {
+    return { predictions: [], error: "Google Places API key is not configured." };
+  }
+
+  const query = input.query.trim().slice(0, 80);
+  if (query.length < 2) {
+    return { predictions: [] };
+  }
+
+  const body: Record<string, unknown> = {
+    input: query,
+    // "(regions)" = cities, neighborhoods, counties, zip codes
+    includedPrimaryTypes: ["(regions)"],
+    includedRegionCodes: ["us"]
+  };
+  if (input.sessionToken) {
+    body.sessionToken = input.sessionToken;
+  }
+  if (input.lat != null && input.lng != null) {
+    body.locationBias = {
+      circle: {
+        center: { latitude: input.lat, longitude: input.lng },
+        radius: 50000
+      }
+    };
+  }
+
+  try {
+    const res = await fetch(
+      "https://places.googleapis.com/v1/places:autocomplete",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": PLACES_API_KEY
+        },
+        body: JSON.stringify(body)
+      }
+    );
+
+    if (!res.ok) {
+      console.warn("[googlePlaces] autocomplete failed:", res.status, await res.text());
+      return {
+        predictions: [],
+        error: `Location suggestions failed (${res.status}).`
+      };
+    }
+
+    const data = (await res.json()) as {
+      suggestions?: {
+        placePrediction?: {
+          placeId?: string;
+          text?: { text?: string };
+          structuredFormat?: {
+            mainText?: { text?: string };
+            secondaryText?: { text?: string };
+          };
+        };
+      }[];
+    };
+
+    const predictions: LocationPrediction[] = [];
+    for (const suggestion of data.suggestions ?? []) {
+      const p = suggestion.placePrediction;
+      const text = p?.text?.text;
+      if (!p?.placeId || !text) continue;
+      predictions.push({
+        placeId: p.placeId,
+        text,
+        mainText: p.structuredFormat?.mainText?.text ?? text,
+        secondaryText: p.structuredFormat?.secondaryText?.text ?? ""
+      });
+    }
+
+    return { predictions };
+  } catch (e) {
+    console.warn("[googlePlaces] autocomplete error:", e);
+    return {
+      predictions: [],
+      error: "Failed to load location suggestions."
+    };
+  }
+}
+
+/** Resolves a prediction's placeId to coordinates + a display label. */
+export async function resolveLocationPlace(
+  placeId: string,
+  sessionToken?: string
+): Promise<{ label: string; lat: number; lng: number } | null> {
+  if (!PLACES_API_KEY) return null;
+
+  try {
+    const params = sessionToken
+      ? `?sessionToken=${encodeURIComponent(sessionToken)}`
+      : "";
+    const res = await fetch(
+      `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}${params}`,
+      {
+        headers: {
+          "X-Goog-Api-Key": PLACES_API_KEY,
+          "X-Goog-FieldMask": "id,formattedAddress,location"
+        }
+      }
+    );
+
+    if (!res.ok) {
+      console.warn("[googlePlaces] resolve failed:", res.status, await res.text());
+      return null;
+    }
+
+    const raw = (await res.json()) as {
+      formattedAddress?: string;
+      location?: { latitude?: number; longitude?: number };
+    };
+    if (raw.location?.latitude == null || raw.location?.longitude == null) {
+      return null;
+    }
+
+    return {
+      label: raw.formattedAddress ?? "",
+      lat: raw.location.latitude,
+      lng: raw.location.longitude
+    };
+  } catch (e) {
+    console.warn("[googlePlaces] resolve error:", e);
+    return null;
+  }
+}
+
 export async function getPlaceDetails(
   placeId: string
 ): Promise<{ details: PlaceDetails | null; error?: string }> {

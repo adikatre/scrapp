@@ -46,6 +46,8 @@ export type Place = {
   curated?: boolean;
   /** Present on curated entries so details can render without a Places lookup */
   phone?: string;
+  /** Present on curated entries so details can render without a Places lookup */
+  website?: string;
   /** Optional per-card prep note shown on curated entries */
   note?: string;
 };

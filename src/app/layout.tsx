@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 
 import { Toaster } from "@/components/ui/sonner";
+import { PillNav } from "@/components/PillNav";
 
 import "./globals.css";
 
@@ -25,6 +26,7 @@ export default function RootLayout({
       <body className="dark">
         <main className={`w-full ${fontFamily.className} antialiased`}>
           <Toaster />
+          <PillNav />
           {children}
         </main>
         <Toaster richColors closeButton />

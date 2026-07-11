@@ -158,10 +158,14 @@ const BRANCH_SEEDS: BranchSeed[] = [
 /** Prep requirement carried on each branch card (from the County flyer). */
 const BATTERY_PREP_NOTE = "Tape the terminal ends before drop-off.";
 
+/** San Diego County Library site, shown in each branch's expanded details. */
+const COUNTY_LIBRARY_WEBSITE = "https://www.sdcl.org";
+
 const PLACES: Place[] = BRANCH_SEEDS.map((b) => ({
   ...b,
   curated: true,
-  note: BATTERY_PREP_NOTE
+  note: BATTERY_PREP_NOTE,
+  website: COUNTY_LIBRARY_WEBSITE
 }));
 
 /** Rough bounding box covering San Diego County. */

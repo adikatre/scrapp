@@ -83,9 +83,6 @@ function LocationsPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [locationReady, setLocationReady] = useState(false);
-  const [usingDeviceLocation, setUsingDeviceLocation] = useState(
-    () => savedOnMount?.label === "Your location"
-  );
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [expandedDetails, setExpandedDetails] = useState<
     Record<string, PlaceDetails>
@@ -96,6 +93,9 @@ function LocationsPageContent() {
   const [isLocating, setIsLocating] = useState(false);
 
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  // Monotonic id so a slow, superseded search can't overwrite the results or
+  // loading state of a newer one (e.g. rapid category switches).
+  const searchSeqRef = useRef(0);
   const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
 
   const category = getCategoryByKey(activeCategory);
@@ -104,13 +104,17 @@ function LocationsPageContent() {
   const runSearch = useCallback(
     async (opts?: { lat?: number; lng?: number; label?: string }) => {
       if (!isSearchable) {
+        searchSeqRef.current++;
         setPlaces([]);
         setError(null);
+        setIsLoading(false);
         return;
       }
 
+      const seq = ++searchSeqRef.current;
       setIsLoading(true);
       setError(null);
+      setSelectedPlaceId(null);
 
       const label = opts?.label ?? locationLabel;
       const lat = opts?.lat ?? userCoords?.lat;
@@ -131,6 +135,9 @@ function LocationsPageContent() {
         item: scannedItem ?? undefined,
         queries: itemQueries
       });
+
+      // A newer search started while this one was in flight — discard.
+      if (seq !== searchSeqRef.current) return;
 
       let sorted = results;
       if (lat != null && lng != null) {
@@ -205,7 +212,6 @@ function LocationsPageContent() {
                 lng: pos.coords.longitude
               });
               setLocationLabel("Your location");
-              setUsingDeviceLocation(true);
               setGeoError(null);
               setLocationReady(true);
             },
@@ -266,7 +272,6 @@ function LocationsPageContent() {
         setIsLocating(false);
         setUserCoords({ lat, lng });
         setLocationLabel("Your location");
-        setUsingDeviceLocation(true);
         runSearch({ lat, lng, label: "Your location" });
       },
       () => {
@@ -285,7 +290,6 @@ function LocationsPageContent() {
     setGeoError(null);
     setUserCoords({ lat: selection.lat, lng: selection.lng });
     setLocationLabel(selection.label);
-    setUsingDeviceLocation(false);
     runSearch({
       lat: selection.lat,
       lng: selection.lng,
@@ -293,12 +297,35 @@ function LocationsPageContent() {
     });
   };
 
-  // Enter pressed without picking a suggestion — fall back to a plain text
-  // search; Google's text search can still resolve it, just without a geocode.
-  const handleManualSubmit = (label: string) => {
+  // Enter pressed without picking a suggestion — geocode the typed text so
+  // distance sorting and location bias still work; only fall back to a plain
+  // text search if geocoding finds nothing.
+  const handleManualSubmit = async (label: string) => {
     setGeoError(null);
+
+    if (typeof google !== "undefined" && google.maps?.Geocoder) {
+      try {
+        const geocoder = new google.maps.Geocoder();
+        const { results } = await geocoder.geocode({
+          address: label,
+          region: "us"
+        });
+        const location = results?.[0]?.geometry?.location;
+        if (location) {
+          const lat = location.lat();
+          const lng = location.lng();
+          const resolvedLabel = results[0].formatted_address ?? label;
+          setUserCoords({ lat, lng });
+          setLocationLabel(resolvedLabel);
+          runSearch({ lat, lng, label: resolvedLabel });
+          return;
+        }
+      } catch {
+        // Geocoder throws on ZERO_RESULTS — fall through to text search.
+      }
+    }
+
     setUserCoords(null);
-    setUsingDeviceLocation(false);
     runSearch({ label });
   };
 
@@ -385,11 +412,6 @@ function LocationsPageContent() {
               bias={userCoords}
               isLocating={isLocating}
             />
-            {usingDeviceLocation && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                Using your current location
-              </p>
-            )}
           </div>
 
           {geoError && (

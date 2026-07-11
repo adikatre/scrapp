@@ -1,7 +1,11 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { useMapsLibrary } from "@vis.gl/react-google-maps";
+import {
+  autocompleteLocations,
+  resolveLocationPlace,
+  type LocationPrediction
+} from "@/lib/googlePlaces";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -29,6 +33,18 @@ type LocationSearchInputProps = {
   disabled?: boolean;
 };
 
+function newSessionToken(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2);
+}
+
+/**
+ * City/zip autocomplete backed by the server-side Places API (via server
+ * actions) rather than the browser Maps JS SDK — the dropdown works even if
+ * the public Maps key lacks Places (New) access, and failures surface as a
+ * visible message instead of an empty dropdown.
+ */
 export function LocationSearchInput({
   value,
   onChange,
@@ -39,20 +55,21 @@ export function LocationSearchInput({
   isLocating,
   disabled
 }: LocationSearchInputProps) {
-  const placesLib = useMapsLibrary("places");
   const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(
-    null
-  );
+  const sessionTokenRef = useRef<string | null>(null);
+  // Monotonic id so late responses from superseded fetches are discarded —
+  // otherwise fast typing can show suggestions for an older query.
+  const fetchSeqRef = useRef(0);
 
-  const [suggestions, setSuggestions] = useState<
-    google.maps.places.AutocompleteSuggestion[]
-  >([]);
+  const [predictions, setPredictions] = useState<LocationPrediction[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isResolving, setIsResolving] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
+  const [noMatches, setNoMatches] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -70,38 +87,38 @@ export function LocationSearchInput({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const fetchSuggestions = (input: string) => {
-    if (!placesLib || input.trim().length < 2) {
-      setSuggestions([]);
+  const fetchSuggestions = async (input: string) => {
+    if (input.trim().length < 2) {
+      fetchSeqRef.current++;
+      setIsFetching(false);
+      setPredictions([]);
+      setNoMatches(false);
+      setFetchError(null);
+      setIsOpen(false);
       return;
     }
 
     if (!sessionTokenRef.current) {
-      sessionTokenRef.current = new placesLib.AutocompleteSessionToken();
+      sessionTokenRef.current = newSessionToken();
     }
 
-    placesLib.AutocompleteSuggestion.fetchAutocompleteSuggestions({
-      input,
+    const seq = ++fetchSeqRef.current;
+    setIsFetching(true);
+
+    const { predictions: results, error } = await autocompleteLocations({
+      query: input,
       sessionToken: sessionTokenRef.current,
-      includedPrimaryTypes: ["locality", "postal_code"],
-      region: "us",
-      ...(bias
-        ? {
-            locationBias: {
-              center: { lat: bias.lat, lng: bias.lng },
-              radius: 50000
-            }
-          }
-        : {})
-    })
-      .then(({ suggestions: results }) => {
-        setSuggestions(results);
-        setActiveIndex(-1);
-        setIsOpen(results.length > 0);
-      })
-      .catch(() => {
-        setSuggestions([]);
-      });
+      lat: bias?.lat,
+      lng: bias?.lng
+    });
+
+    if (seq !== fetchSeqRef.current) return;
+    setIsFetching(false);
+    setPredictions(results);
+    setActiveIndex(-1);
+    setFetchError(error ?? null);
+    setNoMatches(!error && results.length === 0);
+    setIsOpen(true);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,46 +132,47 @@ export function LocationSearchInput({
     );
   };
 
-  const resolveSuggestion = async (
-    suggestion: google.maps.places.AutocompleteSuggestion
-  ) => {
-    const prediction = suggestion.placePrediction;
-    if (!prediction) return;
-
+  const resolvePrediction = async (prediction: LocationPrediction) => {
     setIsResolving(true);
     setIsOpen(false);
     try {
-      const place = prediction.toPlace();
-      const { place: resolved } = await place.fetchFields({
-        fields: ["location", "formattedAddress"]
-      });
+      const resolved = await resolveLocationPlace(
+        prediction.placeId,
+        sessionTokenRef.current ?? undefined
+      );
 
-      if (resolved.location) {
+      if (resolved) {
         onSelectSuggestion({
-          label: resolved.formattedAddress ?? prediction.text.text,
-          lat: resolved.location.lat(),
-          lng: resolved.location.lng()
+          label: resolved.label || prediction.text,
+          lat: resolved.lat,
+          lng: resolved.lng
         });
+      } else {
+        // Couldn't geocode the pick — fall back to a text search on its name.
+        onChange(prediction.text);
+        onManualSubmit(prediction.text);
       }
     } finally {
       setIsResolving(false);
       // Session concluded once a place is resolved; start a fresh one next time.
       sessionTokenRef.current = null;
-      setSuggestions([]);
+      setPredictions([]);
+      setNoMatches(false);
+      setFetchError(null);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      if (!isOpen || suggestions.length === 0) return;
-      setActiveIndex((i) => (i + 1) % suggestions.length);
+      if (!isOpen || predictions.length === 0) return;
+      setActiveIndex((i) => (i + 1) % predictions.length);
       return;
     }
     if (e.key === "ArrowUp") {
       e.preventDefault();
-      if (!isOpen || suggestions.length === 0) return;
-      setActiveIndex((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
+      if (!isOpen || predictions.length === 0) return;
+      setActiveIndex((i) => (i <= 0 ? predictions.length - 1 : i - 1));
       return;
     }
     if (e.key === "Escape") {
@@ -163,8 +181,14 @@ export function LocationSearchInput({
     }
     if (e.key === "Enter") {
       e.preventDefault();
-      if (isOpen && activeIndex >= 0 && suggestions[activeIndex]) {
-        resolveSuggestion(suggestions[activeIndex]);
+      // Default to the top suggestion so "palm springs" + Enter selects the
+      // real city instead of falling back to a fuzzy plain-text search.
+      const pick =
+        isOpen && predictions.length > 0
+          ? predictions[Math.max(activeIndex, 0)]
+          : null;
+      if (pick) {
+        resolvePrediction(pick);
       } else {
         setIsOpen(false);
         onManualSubmit(value);
@@ -173,11 +197,19 @@ export function LocationSearchInput({
   };
 
   const handleClear = () => {
+    fetchSeqRef.current++;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     onChange("");
-    setSuggestions([]);
+    setPredictions([]);
+    setNoMatches(false);
+    setFetchError(null);
+    setIsFetching(false);
     setIsOpen(false);
     inputRef.current?.focus();
   };
+
+  const showDropdown =
+    isOpen && (predictions.length > 0 || noMatches || fetchError);
 
   return (
     <div ref={containerRef} className="relative w-full">
@@ -195,13 +227,13 @@ export function LocationSearchInput({
           disabled={disabled}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          onFocus={() => suggestions.length > 0 && setIsOpen(true)}
+          onFocus={() => predictions.length > 0 && setIsOpen(true)}
           // Inline paddings so the pin and the clear/locate buttons never
           // collide with text even if Tailwind `px-3` wins the cascade.
           style={{ paddingLeft: "2.25rem", paddingRight: "5rem" }}
         />
         <div className="absolute inset-y-0 right-1 flex items-center gap-0.5">
-          {isResolving ? (
+          {isResolving || isFetching ? (
             <Loader2 className="mx-2 h-3.5 w-3.5 animate-spin text-muted-foreground" />
           ) : (
             value && (
@@ -235,29 +267,41 @@ export function LocationSearchInput({
         </div>
       </div>
 
-      {isOpen && suggestions.length > 0 && (
+      {showDropdown && (
         <Card className="absolute z-20 mt-1 w-full overflow-hidden p-1 shadow-lg">
-          {suggestions.map((suggestion, i) => {
-            const prediction = suggestion.placePrediction;
-            if (!prediction) return null;
-            return (
-              <button
-                key={prediction.placeId}
-                type="button"
-                className={cn(
-                  "flex w-full items-start gap-2 rounded-sm px-2 py-1.5 text-left text-sm transition-colors",
-                  i === activeIndex
-                    ? "bg-accent text-accent-foreground"
-                    : "hover:bg-accent/60"
+          {fetchError && (
+            <p className="px-2 py-1.5 text-sm text-destructive">{fetchError}</p>
+          )}
+          {noMatches && (
+            <p className="px-2 py-1.5 text-sm text-muted-foreground">
+              No matching locations — press Enter to search anyway.
+            </p>
+          )}
+          {predictions.map((prediction, i) => (
+            <button
+              key={prediction.placeId}
+              type="button"
+              className={cn(
+                "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm transition-colors",
+                i === activeIndex
+                  ? "bg-accent text-accent-foreground"
+                  : "hover:bg-accent/60"
+              )}
+              onMouseEnter={() => setActiveIndex(i)}
+              onClick={() => resolvePrediction(prediction)}
+            >
+              <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <span className="truncate">
+                <span className="font-medium">{prediction.mainText}</span>
+                {prediction.secondaryText && (
+                  <span className="text-muted-foreground">
+                    {" "}
+                    {prediction.secondaryText}
+                  </span>
                 )}
-                onMouseEnter={() => setActiveIndex(i)}
-                onClick={() => resolveSuggestion(suggestion)}
-              >
-                <Search className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                <span className="truncate">{prediction.text.text}</span>
-              </button>
-            );
-          })}
+              </span>
+            </button>
+          ))}
         </Card>
       )}
     </div>
