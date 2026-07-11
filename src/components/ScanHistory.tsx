@@ -13,7 +13,7 @@ interface ScanHistoryProps {
 export function ScanHistory({
   tickets,
   onSelect,
-  emptyMessage = "Your past scans will show up here."
+  emptyMessage = "Your past scans from this current session will show up here."
 }: ScanHistoryProps) {
   if (tickets.length === 0) {
     return (

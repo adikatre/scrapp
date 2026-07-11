@@ -6,6 +6,7 @@ import {
   sanitizeSearchQueries,
   type LocationCategoryKey
 } from "./locationCategories";
+import { getCuratedPlaces } from "./curated";
 import { Place, PlaceDetails } from "./types";
 
 const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY ?? "";
@@ -52,17 +53,28 @@ export async function searchPlaces(input: {
   /** Item-specific Places queries (e.g. from the scan classifier); sanitized here */
   queries?: string[];
 }): Promise<{ places: Place[]; error?: string }> {
+  // Hand-curated county drop-offs are treated as an extra Places source: they
+  // are merged into the returned list so callers render them as ordinary cards.
+  const curated = getCuratedPlaces({
+    categoryKey: input.categoryKey,
+    item: input.item,
+    lat: input.lat,
+    lng: input.lng,
+    locationLabel: input.locationLabel
+  });
+
   if (!PLACES_API_KEY) {
     return {
-      places: [],
-      error:
-        "Google Places API key is not configured. Add GOOGLE_PLACES_API_KEY to .env.local"
+      places: curated,
+      error: curated.length
+        ? undefined
+        : "Google Places API key is not configured. Add GOOGLE_PLACES_API_KEY to .env.local"
     };
   }
 
   const category = getCategoryByKey(input.categoryKey);
   if (!category?.searchable) {
-    return { places: [], error: "This category does not have physical locations." };
+    return { places: curated, error: undefined };
   }
 
   const hasCoords = input.lat != null && input.lng != null;
@@ -86,7 +98,8 @@ export async function searchPlaces(input: {
   );
 
   const seen = new Set<string>();
-  const merged: Place[] = [];
+  const merged: Place[] = [...curated];
+  for (const place of curated) seen.add(place.id);
   for (const result of results) {
     for (const place of result.places) {
       if (seen.has(place.id)) continue;
@@ -95,7 +108,7 @@ export async function searchPlaces(input: {
     }
   }
 
-  // Only surface an error when every query failed; partial results win.
+  // Only surface an error when every query failed and nothing else was found.
   const firstError = results.find((r) => r.error)?.error;
   if (merged.length === 0 && firstError) {
     return { places: [], error: firstError };

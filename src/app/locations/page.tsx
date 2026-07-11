@@ -134,9 +134,7 @@ function LocationsPageContent() {
             ...p,
             distanceMiles: haversineDistance(lat, lng, p.lat, p.lng)
           }))
-          .sort(
-            (a, b) => (a.distanceMiles ?? 0) - (b.distanceMiles ?? 0)
-          );
+          .sort((a, b) => (a.distanceMiles ?? 0) - (b.distanceMiles ?? 0));
       }
 
       setPlaces(sorted);
@@ -291,6 +289,15 @@ function LocationsPageContent() {
       return;
     }
 
+    // Curated entries carry their own details (phone); no Places lookup needed.
+    if (place.curated) {
+      setExpandedDetails((prev) => ({
+        ...prev,
+        [place.id]: { ...place, phone: place.phone }
+      }));
+      return;
+    }
+
     setLoadingDetails((prev) => ({ ...prev, [place.id]: true }));
     const { details, error: detailsError } = await getPlaceDetails(place.id);
     setLoadingDetails((prev) => ({ ...prev, [place.id]: false }));
@@ -305,8 +312,11 @@ function LocationsPageContent() {
     }
   };
 
-  const directionsUrl = (placeId: string) =>
-    `https://www.google.com/maps/dir/?api=1&destination_place_id=${encodeURIComponent(placeId)}`;
+  // Curated entries have no Google Place ID, so route directions by coordinates.
+  const directionsUrl = (place: Place) =>
+    place.curated
+      ? `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`
+      : `https://www.google.com/maps/dir/?api=1&destination_place_id=${encodeURIComponent(place.id)}`;
 
   return (
     <div className="dark max-h-screen bg-background flex flex-col lg:flex-row p-4 lg:p-6 gap-6 min-h-screen">
@@ -453,6 +463,13 @@ function LocationsPageContent() {
                           {place.address}
                         </p>
 
+                        {place.note && (
+                          <p className="text-sm text-muted-foreground flex items-start gap-2 mt-1">
+                            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+                            {place.note}
+                          </p>
+                        )}
+
                         <div className="flex flex-wrap gap-2 mt-3">
                           <Button
                             size="sm"
@@ -461,7 +478,7 @@ function LocationsPageContent() {
                             onClick={(e) => e.stopPropagation()}
                           >
                             <a
-                              href={directionsUrl(place.id)}
+                              href={directionsUrl(place)}
                               target="_blank"
                               rel="noreferrer noopener"
                             >

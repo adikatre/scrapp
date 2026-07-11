@@ -40,6 +40,12 @@ export type Place = {
   lng: number;
   googleMapsUri?: string;
   distanceMiles?: number;
+  /** True for hand-curated drop-offs (not Google Places) — e.g. county programs */
+  curated?: boolean;
+  /** Present on curated entries so details can render without a Places lookup */
+  phone?: string;
+  /** Optional per-card prep note shown on curated entries */
+  note?: string;
 };
 
 export type PlaceDetails = Place & {
