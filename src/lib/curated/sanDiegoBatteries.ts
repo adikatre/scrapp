@@ -46,16 +46,16 @@ const BRANCH_SEEDS: BranchSeed[] = [
     name: "Borrego Springs Branch",
     address: "587 Palm Canyon Dr., Suite 125, Borrego Springs, CA",
     phone: "(760) 767-5761",
-    lat: 33.25568,
-    lng: -116.3801
+    lat: 33.25406,
+    lng: -116.37936
   },
   {
     id: "sd-lib-campo-morena-village",
     name: "Campo-Morena Village Branch",
     address: "31356 Highway 94, Campo, CA",
     phone: "(619) 478-5945",
-    lat: 32.62372,
-    lng: -116.47453
+    lat: 32.62451,
+    lng: -116.47533
   },
   {
     id: "sd-lib-casa-de-oro",
@@ -70,8 +70,8 @@ const BRANCH_SEEDS: BranchSeed[] = [
     name: "Descanso Branch",
     address: "9545 River Dr., Descanso, CA",
     phone: "(619) 445-5279",
-    lat: 32.85971,
-    lng: -116.61383
+    lat: 32.86005,
+    lng: -116.61491
   },
   {
     id: "sd-lib-fallbrook",
