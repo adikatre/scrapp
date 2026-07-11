@@ -371,10 +371,12 @@ function LocationsPageContent() {
   };
 
   // Curated entries have no Google Place ID, so route directions by coordinates.
+  // Google Places entries pass the place ID, but Maps ignores destination_place_id
+  // unless a destination is also present, so send the name/address alongside it.
   const directionsUrl = (place: Place) =>
     place.curated
       ? `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`
-      : `https://www.google.com/maps/dir/?api=1&destination_place_id=${encodeURIComponent(place.id)}`;
+      : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${place.name}, ${place.address}`)}&destination_place_id=${encodeURIComponent(place.id)}`;
 
   // Mobile: normal document flow — map first at a fixed height, then the
   // list; the page scrolls. Desktop (lg): the old app-like split view where
