@@ -11,12 +11,16 @@ import { Place, PlaceDetails } from "./types";
 
 const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY ?? "";
 
+/** Below this many item-specific hits, backfill with the generic category search */
+const MIN_ITEM_RESULTS = 5;
+
 type GooglePlaceResult = {
   id?: string;
   displayName?: { text?: string };
   formattedAddress?: string;
   location?: { latitude?: number; longitude?: number };
   googleMapsUri?: string;
+  photos?: { name?: string }[];
 };
 
 type GooglePlaceDetailsResult = GooglePlaceResult & {
@@ -40,7 +44,8 @@ function mapPlace(raw: GooglePlaceResult): Place | null {
     address: raw.formattedAddress ?? "",
     lat: raw.location.latitude,
     lng: raw.location.longitude,
-    googleMapsUri: raw.googleMapsUri
+    googleMapsUri: raw.googleMapsUri,
+    photoName: raw.photos?.[0]?.name
   };
 }
 
@@ -86,21 +91,26 @@ export async function searchPlaces(input: {
     input.item
   );
 
-  const itemQueries = sanitizeSearchQueries(input.queries).map((q) =>
-    hasCoords ? q : `${q} near ${input.locationLabel}`
-  );
-  const textQueries = [baseQuery, ...itemQueries.filter((q) => q !== baseQuery)];
+  const itemQueries = sanitizeSearchQueries(input.queries)
+    .map((q) => (hasCoords ? q : `${q} near ${input.locationLabel}`))
+    .filter((q) => q !== baseQuery);
 
-  const results = await Promise.all(
-    textQueries.map((textQuery) =>
-      runTextSearch(textQuery, input.lat, input.lng)
-    )
-  );
+  const [itemResults, baseResult] = await Promise.all([
+    Promise.all(
+      itemQueries.map((textQuery) =>
+        runTextSearch(textQuery, input.lat, input.lng)
+      )
+    ),
+    runTextSearch(baseQuery, input.lat, input.lng)
+  ]);
 
   const seen = new Set<string>();
   const merged: Place[] = [...curated];
   for (const place of curated) seen.add(place.id);
-  for (const result of results) {
+
+  // Item-specific (LLM-grounded) results come first: they target the exact
+  // scanned item, so they beat the generic category query in relevance.
+  for (const result of itemResults) {
     for (const place of result.places) {
       if (seen.has(place.id)) continue;
       seen.add(place.id);
@@ -108,8 +118,22 @@ export async function searchPlaces(input: {
     }
   }
 
+  // Generic category results only backfill when item queries were sparse or
+  // absent; text search is fuzzy, so drop adjacent-but-wrong business types
+  // (e.g. scrap metal yards for "household hazardous waste").
+  const itemResultCount = merged.length - curated.length;
+  if (itemQueries.length === 0 || itemResultCount < MIN_ITEM_RESULTS) {
+    for (const place of baseResult.places) {
+      if (seen.has(place.id)) continue;
+      if (category.excludeResultPattern?.test(place.name)) continue;
+      seen.add(place.id);
+      merged.push(place);
+    }
+  }
+
   // Only surface an error when every query failed and nothing else was found.
-  const firstError = results.find((r) => r.error)?.error;
+  const firstError =
+    itemResults.find((r) => r.error)?.error ?? baseResult.error;
   if (merged.length === 0 && firstError) {
     return { places: [], error: firstError };
   }
@@ -133,6 +157,9 @@ async function runTextSearch(
         radius: 25000
       }
     };
+    // Return the nearest matches instead of the globally "most relevant"
+    // ones, which can otherwise be miles outside the biased circle.
+    body.rankPreference = "DISTANCE";
   }
 
   try {
@@ -142,7 +169,7 @@ async function runTextSearch(
         "Content-Type": "application/json",
         "X-Goog-Api-Key": PLACES_API_KEY,
         "X-Goog-FieldMask":
-          "places.id,places.displayName,places.formattedAddress,places.location,places.googleMapsUri"
+          "places.id,places.displayName,places.formattedAddress,places.location,places.googleMapsUri,places.photos"
       },
       body: JSON.stringify(body)
     });

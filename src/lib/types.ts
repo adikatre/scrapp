@@ -39,6 +39,8 @@ export type Place = {
   lat: number;
   lng: number;
   googleMapsUri?: string;
+  /** Google Places photo resource name (places/{id}/photos/{ref}) for thumbnails */
+  photoName?: string;
   distanceMiles?: number;
   /** True for hand-curated drop-offs (not Google Places) — e.g. county programs */
   curated?: boolean;

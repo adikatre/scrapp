@@ -10,12 +10,17 @@ import React, {
 } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { APIProvider } from "@vis.gl/react-google-maps";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { LocationsMap } from "@/components/LocationsMap";
+import {
+  LocationSearchInput,
+  type LocationSelection
+} from "@/components/LocationSearchInput";
 import { getPlaceDetails, searchPlaces } from "@/lib/googlePlaces";
 import {
   getCategoryByKey,
@@ -32,12 +37,10 @@ import {
 import { Place, PlaceDetails } from "@/lib/types";
 import {
   MapPin,
-  Search,
   Compass,
   Phone,
   Globe,
   Navigation,
-  LocateFixed,
   ChevronDown,
   ChevronUp,
   AlertCircle,
@@ -90,8 +93,10 @@ function LocationsPageContent() {
   const [loadingDetails, setLoadingDetails] = useState<Record<string, boolean>>(
     {}
   );
+  const [isLocating, setIsLocating] = useState(false);
 
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
 
   const category = getCategoryByKey(activeCategory);
   const isSearchable = category?.searchable ?? true;
@@ -165,6 +170,14 @@ function LocationsPageContent() {
     setActiveCategory(initialCategory);
   }, [initialCategory]);
 
+  // Keep the latest runSearch in a ref so the search effect below only fires
+  // on category/location-readiness changes — not on every keystroke in the
+  // location input (locationLabel is a runSearch dependency).
+  const runSearchRef = useRef(runSearch);
+  useEffect(() => {
+    runSearchRef.current = runSearch;
+  }, [runSearch]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -224,8 +237,8 @@ function LocationsPageContent() {
 
   useEffect(() => {
     if (!locationReady) return;
-    runSearch();
-  }, [activeCategory, locationReady, runSearch]);
+    runSearchRef.current();
+  }, [activeCategory, locationReady]);
 
   const filteredPlaces = useMemo(() => {
     const q = listFilter.trim().toLowerCase();
@@ -244,31 +257,49 @@ function LocationsPageContent() {
     }
 
     setGeoError(null);
-    setIsLoading(true);
+    setIsLocating(true);
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
+        setIsLocating(false);
         setUserCoords({ lat, lng });
         setLocationLabel("Your location");
         setUsingDeviceLocation(true);
         runSearch({ lat, lng, label: "Your location" });
       },
       () => {
+        setIsLocating(false);
         setGeoError(
           "Location access denied. Enter a city or zip code and search manually."
         );
-        setIsLoading(false);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
     );
   };
 
-  const handleManualSearch = () => {
+  // Autocomplete suggestion picked: we have a real geocode, so distance
+  // sorting works the same as it does for device geolocation.
+  const handleLocationSelect = (selection: LocationSelection) => {
+    setGeoError(null);
+    setUserCoords({ lat: selection.lat, lng: selection.lng });
+    setLocationLabel(selection.label);
+    setUsingDeviceLocation(false);
+    runSearch({
+      lat: selection.lat,
+      lng: selection.lng,
+      label: selection.label
+    });
+  };
+
+  // Enter pressed without picking a suggestion — fall back to a plain text
+  // search; Google's text search can still resolve it, just without a geocode.
+  const handleManualSubmit = (label: string) => {
+    setGeoError(null);
     setUserCoords(null);
     setUsingDeviceLocation(false);
-    runSearch({ label: locationLabel });
+    runSearch({ label });
   };
 
   const handleSelectPlace = (placeId: string) => {
@@ -318,9 +349,12 @@ function LocationsPageContent() {
       ? `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`
       : `https://www.google.com/maps/dir/?api=1&destination_place_id=${encodeURIComponent(place.id)}`;
 
-  return (
-    <div className="dark max-h-screen bg-background flex flex-col lg:flex-row p-4 lg:p-6 gap-6 min-h-screen">
-      <Card className="w-full lg:w-1/3 lg:max-w-md flex flex-col border-border shadow-lg max-h-[calc(100vh-3rem)]">
+  // Mobile: normal document flow — map first at a fixed height, then the
+  // list; the page scrolls. Desktop (lg): the old app-like split view where
+  // the page is viewport-locked and only the results list scrolls.
+  const content = (
+    <div className="dark min-h-screen bg-background flex flex-col lg:flex-row lg:max-h-screen p-4 lg:p-6 gap-4 lg:gap-6">
+      <Card className="w-full lg:w-1/3 lg:max-w-md flex flex-col border-border shadow-lg lg:max-h-[calc(100vh-3rem)]">
         <CardHeader className="shrink-0">
           <CardTitle className="flex items-center gap-2">
             <MapPin className="text-primary" />
@@ -339,27 +373,24 @@ function LocationsPageContent() {
         </CardHeader>
 
         <CardContent className="flex-grow flex flex-col gap-4 overflow-hidden">
-          <div className="flex gap-2 shrink-0">
-            <Input
-              placeholder="Enter city or zip code..."
+          <div className="shrink-0">
+            {/* Not disabled while results load — typing must stay fluid even
+                mid-search; suggestions are debounced inside the component. */}
+            <LocationSearchInput
               value={locationLabel}
-              onChange={(e) => setLocationLabel(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleManualSearch()}
+              onChange={setLocationLabel}
+              onSelectSuggestion={handleLocationSelect}
+              onManualSubmit={handleManualSubmit}
+              onUseMyLocation={handleUseMyLocation}
+              bias={userCoords}
+              isLocating={isLocating}
             />
-            <Button onClick={handleManualSearch} disabled={isLoading}>
-              <Search className="h-4 w-4" />
-            </Button>
+            {usingDeviceLocation && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Using your current location
+              </p>
+            )}
           </div>
-
-          <Button
-            variant="outline"
-            onClick={handleUseMyLocation}
-            disabled={isLoading}
-            className="shrink-0 flex items-center gap-2"
-          >
-            <LocateFixed className="h-4 w-4" />
-            {usingDeviceLocation ? "Update my location" : "Use my location"}
-          </Button>
 
           {geoError && (
             <p className="text-sm text-amber-500 flex items-start gap-2 shrink-0">
@@ -447,21 +478,40 @@ function LocationsPageContent() {
                         }`}
                         onClick={() => setSelectedPlaceId(place.id)}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <h3 className="font-semibold text-foreground">
-                            {place.name}
-                          </h3>
-                          {place.distanceMiles != null && (
-                            <Badge variant="secondary" className="shrink-0">
-                              {formatDistance(place.distanceMiles)}
-                            </Badge>
+                        <div className="flex items-start gap-3">
+                          {/* Fixed-size thumbnail with lazy loading: on slow
+                              connections the card renders immediately and the
+                              photo fills in without shifting layout. */}
+                          {place.photoName && (
+                            <img
+                              src={`/api/place-photo?name=${encodeURIComponent(place.photoName)}&w=128`}
+                              alt=""
+                              loading="lazy"
+                              decoding="async"
+                              className="h-14 w-14 shrink-0 rounded-md bg-muted object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                              }}
+                            />
                           )}
-                        </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <h3 className="font-semibold text-foreground">
+                                {place.name}
+                              </h3>
+                              {place.distanceMiles != null && (
+                                <Badge variant="secondary" className="shrink-0">
+                                  {formatDistance(place.distanceMiles)}
+                                </Badge>
+                              )}
+                            </div>
 
-                        <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-                          <Compass className="h-4 w-4 shrink-0" />
-                          {place.address}
-                        </p>
+                            <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                              <Compass className="h-4 w-4 shrink-0" />
+                              {place.address}
+                            </p>
+                          </div>
+                        </div>
 
                         {place.note && (
                           <p className="text-sm text-muted-foreground flex items-start gap-2 mt-1">
@@ -570,8 +620,13 @@ function LocationsPageContent() {
         </CardContent>
       </Card>
 
-      <div className="flex-grow rounded-lg overflow-hidden relative shadow-lg min-h-[300px] lg:min-h-0">
-        {isSearchable ? (
+      <div className="order-first lg:order-last h-[45vh] min-h-[280px] shrink-0 lg:h-auto lg:min-h-0 lg:shrink lg:flex-grow rounded-lg overflow-hidden relative shadow-lg">
+        {!mapsApiKey ? (
+          <div className="flex h-full min-h-[300px] items-center justify-center rounded-lg bg-muted/30 p-6 text-center text-sm text-muted-foreground">
+            Add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to .env.local to enable the
+            interactive map and location search.
+          </div>
+        ) : isSearchable ? (
           <LocationsMap
             places={filteredPlaces}
             userLat={userCoords?.lat}
@@ -595,6 +650,14 @@ function LocationsPageContent() {
         )}
       </div>
     </div>
+  );
+
+  return mapsApiKey ? (
+    <APIProvider apiKey={mapsApiKey} libraries={["places"]}>
+      {content}
+    </APIProvider>
+  ) : (
+    content
   );
 }
 

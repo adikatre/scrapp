@@ -30,6 +30,13 @@ export type LocationCategory = {
   searchable: boolean;
   /** Google Places text query template (use {location} placeholder) */
   searchQuery?: string;
+  /**
+   * Google results whose names match are dropped from generic category
+   * searches — text search is fuzzy and returns adjacent-but-wrong business
+   * types (e.g. scrap metal yards for "household hazardous waste").
+   * Item-specific (LLM-grounded) query results are not filtered.
+   */
+  excludeResultPattern?: RegExp;
   /** Shown for non-searchable categories */
   infoMessage?: string;
 };
@@ -65,7 +72,9 @@ export const LOCATION_CATEGORIES: LocationCategory[] = [
     icon: AlertTriangle,
     backendRoutes: ["Hazardous Waste"],
     searchable: true,
-    searchQuery: "household hazardous waste disposal facility {location}"
+    searchQuery: "household hazardous waste disposal facility {location}",
+    excludeResultPattern:
+      /scrap metal|metal recycl|scrap yard|junk ?yard|auto salvage|auto parts|salvage yard|pawn/i
   },
   {
     key: "donation",
@@ -73,7 +82,8 @@ export const LOCATION_CATEGORIES: LocationCategory[] = [
     icon: Heart,
     backendRoutes: ["Bulky Items (Donate)", "Landfill / Donate / Check rules"],
     searchable: true,
-    searchQuery: "donation center thrift store {location}"
+    searchQuery: "donation center thrift store {location}",
+    excludeResultPattern: /landfill|transfer station|dump\b/i
   },
   {
     key: "single_use",
