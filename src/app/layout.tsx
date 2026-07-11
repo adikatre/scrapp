@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 
 import { Toaster } from "@/components/ui/sonner";
@@ -13,7 +13,16 @@ const fontFamily = Geist({
 
 export const metadata: Metadata = {
   title: "Scrapp",
-  description: "Time to scrap the right way!"
+  description: "Time to scrap the right way!",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Scrapp"
+  }
+};
+
+export const viewport: Viewport = {
+  themeColor: "#19573f"
 };
 
 export default function RootLayout({
