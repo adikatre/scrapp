@@ -2,6 +2,8 @@
 
 import { BaseStates } from "./states";
 import { PredictionResult } from "./types";
+import { getPostHogClient } from "./posthog-server";
+import { getDominantItemName, getDominantRoute } from "./locationCategories";
 
 const BACKEND_URL = process.env.NEXT_PRIVATE_BACKEND_URL || "";
 
@@ -15,6 +17,8 @@ export async function predict(formData: FormData): Promise<PredictReturnType> {
   const url = new URL(BACKEND_URL);
   url.pathname = "/predict";
 
+  const distinctId = (formData.get("posthog_distinct_id") as string | null) ?? "anonymous";
+
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -27,6 +31,19 @@ export async function predict(formData: FormData): Promise<PredictReturnType> {
     }
 
     const data = (await res.json()) as PredictionResult;
+
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId,
+      event: "item_analyzed",
+      properties: {
+        item_name: getDominantItemName(data),
+        disposal_route: getDominantRoute(data),
+        detected_objects: data.objects,
+      },
+    });
+    await posthog.flush();
+
     return [BaseStates.SUCCESS, data];
   } catch (e) {
     console.warn(e);

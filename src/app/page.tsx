@@ -5,6 +5,7 @@
 // Import necessary React hooks and components.
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import posthog from "posthog-js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Recycle, Globe, Trash2, ArrowDown, Camera, MapPin, Users } from "lucide-react";
@@ -158,7 +159,7 @@ export default function HomePage() {
                 <p className="text-xl text-foreground/90">
                   Confused about recycling? Scrapp makes it simple. Just snap a photo, and we&apos;ll tell you exactly how to dispose of your items properly. Then, we&apos;ll tell you where you can dispose of the item.
                 </p>
-                <Button asChild size="lg" className="mt-4">
+                <Button asChild size="lg" className="mt-4" onClick={() => posthog.capture("get_started_clicked")}>
                   <Link href="/cam">
                     Get Started <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
@@ -411,7 +412,7 @@ export default function HomePage() {
                     <p className="text-muted-foreground mb-4">
                       Don&apos;t worry about memorizing all these rules. Just snap a photo of your item, and Scrapp will tell you exactly how to dispose of it properly!
                     </p>
-                    <Button asChild size="lg">
+                    <Button asChild size="lg" onClick={() => posthog.capture("get_started_clicked", { source: "lesser_known_recyclables_cta" })}>
                       <Link href="/cam">
                         Try Scrapp Now <Camera className="ml-2 h-5 w-5" />
                       </Link>

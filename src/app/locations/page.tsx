@@ -8,6 +8,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import posthog from "posthog-js";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { APIProvider } from "@vis.gl/react-google-maps";
@@ -428,7 +429,10 @@ function LocationsPageContent() {
               <Button
                 key={key}
                 variant={activeCategory === key ? "default" : "outline"}
-                onClick={() => setActiveCategory(key)}
+                onClick={() => {
+                  setActiveCategory(key);
+                  posthog.capture("location_category_changed", { category: key, label });
+                }}
                 className="flex items-center gap-1.5 text-xs px-2"
                 size="sm"
               >
@@ -549,7 +553,13 @@ function LocationsPageContent() {
                             size="sm"
                             variant="outline"
                             asChild
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              posthog.capture("place_directions_clicked", {
+                                place_name: place.name,
+                                category: activeCategory,
+                              });
+                            }}
                           >
                             <a
                               href={directionsUrl(place)}
@@ -565,6 +575,12 @@ function LocationsPageContent() {
                             variant="ghost"
                             onClick={(e) => {
                               e.stopPropagation();
+                              if (!expandedDetails[place.id]) {
+                                posthog.capture("place_details_expanded", {
+                                  place_name: place.name,
+                                  category: activeCategory,
+                                });
+                              }
                               handleExpandPlace(place);
                             }}
                             disabled={loadingDetails[place.id]}
