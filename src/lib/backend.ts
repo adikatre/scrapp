@@ -37,17 +37,24 @@ export async function predict(formData: FormData): Promise<PredictReturnType> {
 
     const data = (await res.json()) as PredictionResult;
 
-    const posthog = getPostHogClient();
-    posthog.capture({
-      distinctId,
-      event: "item_analyzed",
-      properties: {
-        item_name: getDominantItemName(data),
-        disposal_route: getDominantRoute(data),
-        detected_objects: data.objects,
-      },
-    });
-    await posthog.flush();
+    try {
+      const posthog = getPostHogClient();
+      if (posthog) {
+        posthog.capture({
+          distinctId,
+          event: "item_analyzed",
+          properties: {
+            item_name: getDominantItemName(data),
+            disposal_route: getDominantRoute(data),
+            detected_objects: data.objects,
+          },
+        });
+        await posthog.flush();
+      }
+    } catch (e) {
+      // Analytics failures must never fail the prediction itself.
+      console.warn("[backend.ts] posthog capture failed", e);
+    }
 
     return [BaseStates.SUCCESS, data];
   } catch (e) {
