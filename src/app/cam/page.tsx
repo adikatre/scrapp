@@ -19,6 +19,7 @@ export default function CamPage() {
     note?: string;
     guidance: string;
     disposalRoute: string;
+    bin?: string;
     itemName: string;
     searchQueries?: string[];
   }) {

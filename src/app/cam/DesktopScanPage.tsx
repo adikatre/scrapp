@@ -22,6 +22,7 @@ import { BaseStates } from "@/lib/states";
 import { ScanTicket } from "@/lib/types";
 import { dataURLtoFile, summarizePrediction } from "@/lib/utils";
 import {
+  getDominantBin,
   getDominantItemName,
   getDominantRoute,
   getDominantSearchQueries
@@ -35,6 +36,7 @@ interface DesktopScanPageProps {
     note?: string;
     guidance: string;
     disposalRoute: string;
+    bin?: string;
     itemName: string;
     searchQueries?: string[];
   }) => void;
@@ -143,6 +145,7 @@ export default function DesktopScanPage({
         note: trimmedNote || undefined,
         guidance: summarizePrediction(res),
         disposalRoute: getDominantRoute(res),
+        bin: getDominantBin(res) || undefined,
         itemName: getDominantItemName(res),
         searchQueries: getDominantSearchQueries(res)
       });

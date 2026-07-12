@@ -92,7 +92,7 @@ export const LOCATION_CATEGORIES: LocationCategory[] = [
     backendRoutes: ["Single-Use Items"],
     searchable: false,
     infoMessage:
-      "Single-use items like utensils and bags usually go in your regular trash or can sometimes be recycled through store drop-off programs. No special facility is needed."
+      "In San Diego, single-use items like plastic straws, utensils, bags, film and anything labeled 'compostable' or 'biodegradable' go in the gray trash bin — never the blue or green bin. No special facility is needed."
   },
   {
     key: "general_trash",
@@ -101,7 +101,7 @@ export const LOCATION_CATEGORIES: LocationCategory[] = [
     backendRoutes: ["General Trash"],
     searchable: false,
     infoMessage:
-      "This item belongs in your regular trash bin. No special drop-off location is required — just use your curbside garbage collection."
+      "This item belongs in San Diego's gray trash bin. No special drop-off location is required — just use your curbside collection. Never put electronics, batteries or CFL bulbs in any curbside bin."
   },
   {
     key: "city_infra",
@@ -208,6 +208,11 @@ export function getDominantRoute(result: PredictionResult): string {
 export function getDominantSearchQueries(result: PredictionResult): string[] {
   const bestItem = result.items ? pickBestClassifiedItem(result.items) : undefined;
   return bestItem?.search_queries ?? [];
+}
+
+export function getDominantBin(result: PredictionResult): string {
+  const bestItem = result.items ? pickBestClassifiedItem(result.items) : undefined;
+  return bestItem?.bin ?? "";
 }
 
 export function getDominantItemName(result: PredictionResult): string {

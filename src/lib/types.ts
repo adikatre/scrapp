@@ -4,6 +4,8 @@ export type ClassifiedItem = {
   name: string;
   material: string;
   route: PredictionRoutes;
+  /** San Diego household destination, e.g. "Blue Bin (Recycling)" */
+  bin?: string;
   confidence: number;
   caveats: string;
   /** LLM-suggested Places text queries for this item (no location wording) */
@@ -73,6 +75,8 @@ export type ScanTicket = {
   note?: string;
   guidance: string;
   disposalRoute: string;
+  /** San Diego household destination, e.g. "Blue Bin (Recycling)" */
+  bin?: string;
   itemName: string;
   searchQueries?: string[];
   timestamp: Date;

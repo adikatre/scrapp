@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Recycle, Trash2, ArrowDown, Camera, MapPin } from "lucide-react";
+import { ArrowRight, Recycle, Trash2, ArrowDown, Camera, MapPin, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // This is a custom hook to detect if an element is visible on the screen.

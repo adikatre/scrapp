@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Home, Search, MessageCircle } from "lucide-react";
+import { Home, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,10 +12,6 @@ import {
 import { BackButton } from "@/components/BackButton";
 
 export default function NotFound() {
-  // const handleContactUs = () => {
-  //   console.log("Contact us clicked");
-  // };
-
   return (
     <div className="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
       <div className="flex w-full max-w-md flex-col gap-6">
@@ -45,27 +41,6 @@ export default function NotFound() {
               </Button>
 
               <BackButton />
-
-              <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
-                <span className="bg-card text-muted-foreground relative z-10 px-2">
-                  Need help?
-                </span>
-              </div>
-
-              <Button
-                variant="outline"
-                // onClick={handleContactUs}
-                className="w-full">
-                <MessageCircle className="h-4 w-4 mr-2" />
-                Contact Us
-              </Button>
-            </div>
-
-            <div className="mt-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                Error Code:{" "}
-                <span className="font-mono text-foreground">404</span>
-              </p>
             </div>
           </CardContent>
         </Card>

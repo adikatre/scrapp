@@ -37,6 +37,31 @@ function getCategoryAccent(route: string) {
   return CATEGORY_ACCENTS[key] ?? CATEGORY_ACCENTS.recycle;
 }
 
+// San Diego household bin chip colors, keyed by the backend's bin strings.
+// The tint matches the physical curbside bin color.
+const BIN_ACCENTS: Record<string, string> = {
+  "Blue Bin (Recycling)": "bg-blue-500/15 text-blue-400 ring-blue-500/30",
+  "Green Bin (Organics)": "bg-green-500/15 text-green-400 ring-green-500/30",
+  "Gray Bin (Trash)": "bg-zinc-500/15 text-zinc-400 ring-zinc-500/30",
+  "Special Drop-off": "bg-amber-500/15 text-amber-400 ring-amber-500/30"
+};
+
+function BinChip({ bin }: { bin?: string }) {
+  if (!bin) return null;
+  const accent = BIN_ACCENTS[bin];
+  if (!accent) return null;
+
+  return (
+    <span
+      className={cn(
+        "inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset",
+        accent
+      )}>
+      {bin}
+    </span>
+  );
+}
+
 interface DisposalTicketProps {
   ticket: ScanTicket;
   onImageClick?: (src: string) => void;
@@ -113,6 +138,7 @@ export function DisposalTicket({
             {label}
           </span>
         </div>
+        <BinChip bin={ticket.bin} />
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
         {!hideImage && ticket.image && (
