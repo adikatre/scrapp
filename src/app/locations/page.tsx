@@ -24,6 +24,7 @@ import {
 import { getPlaceDetails, searchPlaces } from "@/lib/googlePlaces";
 import {
   getCategoryByKey,
+  getCurbsideBinInfo,
   itemAffectsSearch,
   LOCATION_CATEGORIES,
   type LocationCategoryKey
@@ -57,6 +58,9 @@ function LocationsPageContent() {
     () => searchParams.getAll("q"),
     [searchParams]
   );
+  // Curbside bin the scan landed in (blue/green/gray), if any. Surfaces the
+  // "toss it at the curb" note. Special Drop-off and non-bins yield undefined.
+  const curbsideBin = getCurbsideBinInfo(searchParams.get("bin"));
 
   const savedOnMount = useMemo(() => readSavedLocationPrefs(), []);
 
@@ -100,6 +104,11 @@ function LocationsPageContent() {
 
   const category = getCategoryByKey(activeCategory);
   const isSearchable = category?.searchable ?? true;
+  // Only show the curbside note while viewing the bin's own category; switching
+  // to another tab (e.g. a manual drop-off search) hides it.
+  const showCurbsideNote =
+    !!curbsideBin && activeCategory === curbsideBin.categoryKey;
+  const CurbsideIcon = category?.icon;
 
   const runSearch = useCallback(
     async (opts?: { lat?: number; lng?: number; label?: string }) => {
@@ -258,7 +267,7 @@ function LocationsPageContent() {
 
   const handleUseMyLocation = () => {
     if (!navigator.geolocation) {
-      setGeoError("Geolocation is not supported in this browser.");
+      setGeoError("Your browser cannot find your location.");
       return;
     }
 
@@ -277,7 +286,7 @@ function LocationsPageContent() {
       () => {
         setIsLocating(false);
         setGeoError(
-          "Location access denied. Enter a city or zip code and search manually."
+          "We could not get your location. Type a city or zip code instead."
         );
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
@@ -387,7 +396,7 @@ function LocationsPageContent() {
         <CardHeader className="shrink-0">
           <CardTitle className="flex items-center gap-2">
             <MapPin className="text-primary" />
-            Find Disposal & Donation Centers
+            Find a Drop-Off Place
           </CardTitle>
           {scannedItem && category && (
             <p className="text-sm text-muted-foreground mt-1">
@@ -438,7 +447,26 @@ function LocationsPageContent() {
             ))}
           </div>
 
-          {!isSearchable && category?.infoMessage && (
+          {showCurbsideNote && curbsideBin && (
+            <Card className={`p-4 shrink-0 border ${curbsideBin.accent}`}>
+              <p className="text-sm text-foreground flex items-start gap-2">
+                {CurbsideIcon && (
+                  <CurbsideIcon className="h-4 w-4 mt-0.5 shrink-0" />
+                )}
+                {curbsideBin.note}
+              </p>
+              {!isSearchable && (
+                <Button asChild variant="link" className="px-0 mt-2">
+                  <Link href="/cam">
+                    <Camera className="h-4 w-4 mr-1 inline" />
+                    Scan another item
+                  </Link>
+                </Button>
+              )}
+            </Card>
+          )}
+
+          {!isSearchable && category?.infoMessage && !showCurbsideNote && (
             <Card className="p-4 bg-muted/50 shrink-0">
               <p className="text-sm text-muted-foreground">
                 {category.infoMessage}
@@ -479,8 +507,7 @@ function LocationsPageContent() {
                 {!isLoading && !error && filteredPlaces.length === 0 && (
                   <Card className="p-4 bg-muted/50">
                     <p className="text-sm text-muted-foreground">
-                      No locations found for this area. Try a different city,
-                      widen your search, or switch categories.
+                      We did not find any places here. Try a different city widen your search, or switch categories.
                     </p>
                   </Card>
                 )}
