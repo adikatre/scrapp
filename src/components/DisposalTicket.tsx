@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import posthog from "posthog-js";
 import { MapPin, RotateCcw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -136,7 +137,14 @@ export function DisposalTicket({
         </p>
       </CardContent>
       <CardFooter className="flex flex-wrap gap-2">
-        <Button asChild className="flex-1">
+        <Button
+          asChild
+          className="flex-1"
+          onClick={() => posthog.capture("find_disposal_locations_clicked", {
+            item_name: ticket.itemName,
+            disposal_route: ticket.disposalRoute,
+          })}
+        >
           <Link
             href={buildLocationsHref(
               ticket.disposalRoute || "Recycle",
@@ -147,7 +155,10 @@ export function DisposalTicket({
             Find disposal locations
           </Link>
         </Button>
-        <Button variant="outline" onClick={onScanAgain}>
+        <Button variant="outline" onClick={() => {
+          posthog.capture("scan_again_clicked", { item_name: ticket.itemName });
+          onScanAgain?.();
+        }}>
           <RotateCcw className="size-4" />
           Scan again
         </Button>

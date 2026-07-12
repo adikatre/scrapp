@@ -2,6 +2,8 @@
 
 import { BaseStates } from "./states";
 import { PredictionResult } from "./types";
+import { getPostHogClient } from "./posthog-server";
+import { getDominantItemName, getDominantRoute } from "./locationCategories";
 
 const BACKEND_URL = process.env.NEXT_PRIVATE_BACKEND_URL || "";
 const BACKEND_API_KEY = process.env.BACKEND_API_KEY || "";
@@ -16,6 +18,8 @@ type PredictReturnType =
 export async function predict(formData: FormData): Promise<PredictReturnType> {
   const url = new URL(BACKEND_URL);
   url.pathname = "/predict";
+
+  const distinctId = (formData.get("posthog_distinct_id") as string | null) ?? "anonymous";
 
   try {
     const res = await fetch(url, {
@@ -32,6 +36,26 @@ export async function predict(formData: FormData): Promise<PredictReturnType> {
     }
 
     const data = (await res.json()) as PredictionResult;
+
+    try {
+      const posthog = getPostHogClient();
+      if (posthog) {
+        posthog.capture({
+          distinctId,
+          event: "item_analyzed",
+          properties: {
+            item_name: getDominantItemName(data),
+            disposal_route: getDominantRoute(data),
+            detected_objects: data.objects,
+          },
+        });
+        await posthog.flush();
+      }
+    } catch (e) {
+      // Analytics failures must never fail the prediction itself.
+      console.warn("[backend.ts] posthog capture failed", e);
+    }
+
     return [BaseStates.SUCCESS, data];
   } catch (e) {
     console.warn(e);

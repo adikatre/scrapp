@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, KeyboardEvent, useRef, useState } from "react";
+import posthog from "posthog-js";
 import Webcam from "react-webcam";
 
 import {
@@ -78,6 +79,7 @@ export default function DesktopScanPage({
         const image = cameraRef.current?.getScreenshot();
         setCapturedImage(image || null);
         setIsCapturing(false);
+        if (image) posthog.capture("image_captured", { method: "camera" });
       }, 200);
     }
   };
@@ -96,6 +98,7 @@ export default function DesktopScanPage({
         const reader = new FileReader();
         reader.onload = (event) => {
           setCapturedImage(event.target?.result as string);
+          posthog.capture("image_uploaded", { file_type: file.type });
         };
         reader.readAsDataURL(file);
       }
@@ -130,26 +133,34 @@ export default function DesktopScanPage({
     const fd = new FormData();
     if (trimmedNote) fd.append("text", trimmedNote);
     fd.append("file", file);
+    fd.append("posthog_distinct_id", posthog.get_distinct_id());
 
+    posthog.capture("scan_submitted", { has_note: !!trimmedNote });
     setIsAnalyzing(true);
     try {
       const [state, res] = await predict(fd);
       if (state === BaseStates.ERROR || !res) {
         toast.error("Prediction failed");
+        posthog.capture("scan_failed");
         return;
       }
+      const disposalRoute = getDominantRoute(res);
+      const itemName = getDominantItemName(res);
       onScanComplete({
         image: capturedImage,
         note: trimmedNote || undefined,
         guidance: summarizePrediction(res),
-        disposalRoute: getDominantRoute(res),
-        itemName: getDominantItemName(res),
+        disposalRoute,
+        itemName,
         searchQueries: getDominantSearchQueries(res)
       });
+      posthog.capture("scan_completed", { item_name: itemName, disposal_route: disposalRoute });
       setCapturedImage(null);
       setNote("");
     } catch (e) {
       toast.error("Prediction error");
+      posthog.captureException(e);
+      posthog.capture("scan_failed");
     } finally {
       setIsAnalyzing(false);
     }
