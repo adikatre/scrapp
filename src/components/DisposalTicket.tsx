@@ -13,7 +13,7 @@ import {
 import {
   buildLocationsHref,
   getCategoryByKey,
-  routeToCategoryKey
+  resolveCategoryKey
 } from "@/lib/locationCategories";
 import { ScanTicket } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -32,8 +32,7 @@ const CATEGORY_ACCENTS: Record<string, string> = {
   living_things: "bg-teal-500/15 text-teal-400 ring-teal-500/30"
 };
 
-function getCategoryAccent(route: string) {
-  const key = routeToCategoryKey(route);
+function getCategoryAccent(key: string) {
   return CATEGORY_ACCENTS[key] ?? CATEGORY_ACCENTS.recycle;
 }
 
@@ -80,9 +79,13 @@ export function DisposalTicket({
   hideImage,
   className
 }: DisposalTicketProps) {
-  const category = getCategoryByKey(routeToCategoryKey(ticket.disposalRoute));
+  // The bin is San Diego's authoritative destination, so a curbside bin decides
+  // the category even when the model's route disagrees (e.g. a pen tagged
+  // "Donate" that actually goes in the gray trash bin).
+  const categoryKey = resolveCategoryKey(ticket.disposalRoute, ticket.bin);
+  const category = getCategoryByKey(categoryKey);
   const Icon = category?.icon ?? Sparkles;
-  const accent = getCategoryAccent(ticket.disposalRoute);
+  const accent = getCategoryAccent(categoryKey);
   const label = category?.label ?? (ticket.disposalRoute || "Unsorted");
 
   if (compact) {
@@ -167,7 +170,8 @@ export function DisposalTicket({
             href={buildLocationsHref(
               ticket.disposalRoute || "Recycle",
               ticket.itemName,
-              ticket.searchQueries
+              ticket.searchQueries,
+              ticket.bin
             )}>
             <MapPin className="size-4" />
             Find disposal locations

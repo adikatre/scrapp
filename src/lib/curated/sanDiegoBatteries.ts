@@ -201,7 +201,7 @@ function matches(input: CuratedMatchInput): boolean {
 
 export const sanDiegoBatteryProgram: CuratedProvider = {
   id: "sd-county-battery-collection",
-  name: "County of San Diego — Free Battery Collection",
+  name: "County of San Diego: Free Battery Collection",
   matches,
   places: PLACES
 };

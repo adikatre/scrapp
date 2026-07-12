@@ -131,7 +131,7 @@ export default function HomePage() {
             playsInline
             className="w-full h-full object-cover"
           >
-            <source src="https://www.pexels.com/download/video/9056204/?fps=29.97&h=2160&w=3840" type="video/mp4" />
+            <source src="/hero-video-loop-2k.mp4" type="video/mp4" />
             Your browser does not support the video tag.
           </video>
         </div>
@@ -315,8 +315,6 @@ export default function HomePage() {
                           key={idx}
                           className="group relative overflow-hidden border-none bg-card/70 backdrop-blur-xl shadow-xl transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl"
                         >
-                          {/* soft gradient halo */}
-                          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-70" />
                           <CardHeader className="relative">
                             <div className="flex items-start justify-between gap-4">
                               <CardTitle className="text-xl font-semibold leading-tight">{it.item_name}</CardTitle>
@@ -336,15 +334,12 @@ export default function HomePage() {
                               </ul>
                             </div>
 
-                            <div className="flex items-center gap-2 text-base">
-                              <MapPin className="h-5 w-5 opacity-70" />
-                              <span><span className="font-medium">Where to take:</span> {it.where_to_take}</span>
-                            </div>
+
 
                             <div className="rounded-md bg-muted/40 p-4 text-base flex items-start gap-2">
                               <div>
                                 <p className="">{it.impact_note}</p>
-                                <p className="text-xs text-muted-foreground mt-1">Verified {it.last_verified}</p>
+
                               </div>
                             </div>
 

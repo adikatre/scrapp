@@ -92,7 +92,7 @@ export const LOCATION_CATEGORIES: LocationCategory[] = [
     backendRoutes: ["Single-Use Items"],
     searchable: false,
     infoMessage:
-      "In San Diego, single-use items like plastic straws, utensils, bags, film and anything labeled 'compostable' or 'biodegradable' go in the gray trash bin — never the blue or green bin. No special facility is needed."
+      "No special facility is needed. In San Diego, single-use items like plastic straws, utensils, bags, film and anything labeled 'compostable' or 'biodegradable' go in the gray trash bin."
   },
   {
     key: "general_trash",
@@ -101,7 +101,7 @@ export const LOCATION_CATEGORIES: LocationCategory[] = [
     backendRoutes: ["General Trash"],
     searchable: false,
     infoMessage:
-      "This item belongs in San Diego's gray trash bin. No special drop-off location is required — just use your curbside collection. Never put electronics, batteries or CFL bulbs in any curbside bin."
+      "No special facility is needed. This item belongs in San Diego's gray trash bin. Electronics do not go in any curbside bin."
   },
   {
     key: "city_infra",
@@ -110,7 +110,7 @@ export const LOCATION_CATEGORIES: LocationCategory[] = [
     backendRoutes: ["City Infrastructure"],
     searchable: false,
     infoMessage:
-      "City infrastructure items aren't household waste. Contact your local public works department if you need to report or dispose of these."
+      "Contact your local public works department if you need to report or dispose of these."
   },
   {
     key: "living_things",
@@ -119,7 +119,7 @@ export const LOCATION_CATEGORIES: LocationCategory[] = [
     backendRoutes: ["Living Things"],
     searchable: false,
     infoMessage:
-      "Living things aren't waste! If you found a lost pet or animal, contact your local animal control or shelter instead."
+      "If you found a lost pet or animal, contact your local animal control or shelter instead."
   }
 ];
 
@@ -139,6 +139,61 @@ export function routeToCategoryKey(route: string): LocationCategoryKey {
     c.backendRoutes.includes(route)
   );
   return match?.key ?? "recycle";
+}
+
+// City of San Diego household bin strings. Must stay in sync with the backend
+// enum in scrapp-backend/final/categories.py (BIN_BLUE/GREEN/GRAY/SPECIAL/NONE).
+export const BIN_BLUE = "Blue Bin (Recycling)";
+export const BIN_GREEN = "Green Bin (Organics)";
+export const BIN_GRAY = "Gray Bin (Trash)";
+export const BIN_SPECIAL = "Special Drop-off";
+export const BIN_NONE = "Not Applicable";
+
+export type CurbsideBinInfo = {
+  /** Category whose tab and (if any) drop-off search this bin maps to */
+  categoryKey: LocationCategoryKey;
+  /** Curbside note shown atop /locations. The bin is the real destination. */
+  note: string;
+  /** Bin-tinted classes for the note banner */
+  accent: string;
+};
+
+// The three curbside bins collected at the curb. An item that lands here needs
+// no drop-off trip, so the bin (not the route) is the authoritative destination.
+const CURBSIDE_BINS: Record<string, CurbsideBinInfo> = {
+  [BIN_BLUE]: {
+    categoryKey: "recycle",
+    note: "Good news! This goes in your blue recycling bin at home. Rinse it, let it dry, and keep it loose (no bags). Put the lid back on. You do not need to drive anywhere. If you want, you can drop it off at a place below.",
+    accent: "border-blue-500/30 bg-blue-500/10"
+  },
+  [BIN_GREEN]: {
+    categoryKey: "compost",
+    note: "Good news! This goes in your green food and yard bin at home. You do not need to drive anywhere. If you want, you can drop it off at a place below.",
+    accent: "border-green-500/30 bg-green-500/10"
+  },
+  [BIN_GRAY]: {
+    categoryKey: "general_trash",
+    note: "This goes in your gray trash bin at home. Just put it out with your normal trash. You do not need to drive anywhere. Never put batteries, bulbs, or electronics in any home bin.",
+    accent: "border-zinc-500/30 bg-zinc-500/10"
+  }
+};
+
+/** Curbside metadata for a bin, or undefined for Special Drop-off / non-bins. */
+export function getCurbsideBinInfo(
+  bin: string | null | undefined
+): CurbsideBinInfo | undefined {
+  if (!bin) return undefined;
+  return CURBSIDE_BINS[bin];
+}
+
+/** Curbside bins override the route: they are collected at the curb, so the
+ * bin decides the destination category (fixes route/bin mismatches, e.g. a pen
+ * the model tags "Landfill / Donate" but drops in the gray trash bin). */
+export function resolveCategoryKey(
+  route: string,
+  bin?: string | null
+): LocationCategoryKey {
+  return getCurbsideBinInfo(bin)?.categoryKey ?? routeToCategoryKey(route);
 }
 
 const NON_WASTE_ROUTES = ["Living Things", "City Infrastructure"];
@@ -355,11 +410,15 @@ export function buildSearchQuery(
 export function buildLocationsHref(
   route: string,
   itemName?: string,
-  searchQueries?: string[]
+  searchQueries?: string[],
+  bin?: string | null
 ): string {
-  const category = routeToCategoryKey(route);
+  const category = resolveCategoryKey(route, bin);
   const params = new URLSearchParams({ category });
   if (itemName) params.set("item", itemName);
+  // Pass the curbside bin so /locations can surface the "toss it at the curb"
+  // note; only curbside bins are recognized, so Special Drop-off is omitted.
+  if (getCurbsideBinInfo(bin)) params.set("bin", bin as string);
   for (const q of sanitizeSearchQueries(searchQueries)) {
     params.append("q", q);
   }
