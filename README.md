@@ -1,53 +1,94 @@
-Scrapp - Smart Waste Disposal Helper
+# Scrapp — Smart Waste Disposal Helper
 
-### Quickstart
+Photograph an item, get clear disposal guidance, and find nearby drop-off locations. Scrapp is a mobile-first PWA built to reduce recycling confusion and keep hazardous waste out of the wrong bins.
 
-Start Next.js local server: `bun run dev`
- - Predictions won't work until the [backend](https://github.com/adikatre/scrapp-backend) is running.
+## How to Use
 
-## What is Scrapp?
+1. **Home** (`/`) — Learn how Scrapp works and why proper disposal matters.
+2. **Scan** (`/cam`) — Take a photo with your camera or upload an image. Add an optional note for extra context.
+3. **Result** — See the item name, material, disposal route, confidence, and guidance.
+4. **Locations** (`/locations`) — Find nearby recycling, compost, e-waste, and other drop-off centers on an interactive map. Scan results deep-link here with item-specific search queries.
 
-Ever wondered if that weird plastic container can be recycled? Or where to throw
-away old batteries? Scrapp is here to help! Just take a photo of anything you
-want to dispose of, and our app will tell you exactly how to get rid of it
-properly.
+### Install as an App (PWA)
 
-## Why We Built This
+On mobile, open Scrapp in your browser and choose **Add to Home Screen** (Safari: Share → Add to Home Screen; Chrome: menu → Install app). Camera access requires HTTPS in production.
 
-We noticed that people (including ourselves) often don't know the right way to
-throw things away. This leads to recyclables ending up in landfills, hazardous
-items in regular trash, and a lot of confusion at the recycling bin.
+## Features
 
-We wanted to make it simple: take a picture, get an answer. No more guessing, no
-more complicated recycling guides just quick, clear help when you need it.
-
-## What We've Built So Far
-
-- Camera that works: Point, shoot, and capture photos with your phone
-- Mobile-friendly: Works great on phones and computers
-- Clean design: Simple, easy-to-use interface
-
-## Tech Stuff
-
-Frontend (this repo): Next.js, React, TypeScript, Tailwind CSS  
-Backend: [Check out our backend here](https://github.com/adikatre/scrapp-backend)
+- Camera scan and image upload with optional text note
+- GPT-4o-mini vision classification with 9 disposal routes, confidence scores, and caveats
+- Interactive locations map with category filters and LLM-generated search queries from scan results
+- Curated local data (e.g. San Diego County free battery collection at library branches)
+- Mobile-first responsive UI with separate mobile and desktop scan experiences
+- Installable PWA ([manifest.ts](src/app/manifest.ts))
 
 ## Congressional App Challenge
 
-We're high school students participating in the Congressional App
-Challenge 2025. The challenge asks students to create apps that help their
-communities, and we chose to tackle the confusion around proper waste disposal.
+Scrapp placed **4th nationally** in the Congressional App Challenge 2025. We built it as high school students to tackle a real community problem: people don't know how to dispose of things properly, which hurts the environment. Our solution makes it simple — take a photo and get clear disposal instructions.
 
-The Problem: People don't know how to dispose of things properly, which
-hurts the environment.
+## Developer Setup
 
-Our Solution: Scrapp makes it simple - just take a photo and get clear
-disposal instructions.
+### Prerequisites
 
-## Made by:
+- Node.js 20+
+- A running [Scrapp backend](https://github.com/adikatre/scrapp-backend) with a valid `OPENAI_API_KEY` (predictions won't work without it)
+- Google Cloud project with **Maps JavaScript API** and **Places API (New)** enabled (for the locations page)
 
-- Frontend: [SlushEE0](https://github.com/adikatre)
-- Backend & AI: [adikatre](https://github.com/slushee0)
+### Install and Run
+
+```bash
+cp .env.example .env.local
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). Start the backend on port 5000 before scanning.
+
+### Environment Variables
+
+| Variable | Purpose |
+|---|---|
+| `NEXT_PRIVATE_BACKEND_URL` | Flask backend URL (e.g. `http://localhost:5000`) |
+| `GOOGLE_PLACES_API_KEY` | Server-side Places search (keep secret) |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Client-side map tiles (restrict by domain in production) |
+
+See [.env.example](.env.example) for a template.
+
+### Project Structure
+
+| Path | Description |
+|---|---|
+| `src/app/page.tsx` | Landing page |
+| `src/app/cam/` | Scan flow (mobile and desktop UIs) |
+| `src/app/locations/` | Map and place search |
+| `src/lib/backend.ts` | Server action that proxies to `/predict` |
+| `src/lib/googlePlaces.ts` | Places API search and details |
+| `src/lib/curated/` | Hand-curated local drop-off programs |
+
+### Architecture
+
+```
+User → Next.js PWA → server action → Flask /predict → GPT-4o-mini
+                   → Google Places API (locations search)
+                   → Google Maps JS API (map tiles)
+```
+
+## Deployment
+
+Deploy the frontend to Vercel and the backend to Render or Railway. Set `NEXT_PRIVATE_BACKEND_URL` to your production backend URL and restrict `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` to your domain in Google Cloud Console.
+
+For a full launch checklist — budget, metrics, distribution, and ops — see [LAUNCH_GUIDE.md](LAUNCH_GUIDE.md).
+
+## Tech Stack
+
+**Frontend (this repo):** Next.js 15, React 19, TypeScript, Tailwind CSS 4, Radix UI, Google Maps
+
+**Backend:** [scrapp-backend](https://github.com/adikatre/scrapp-backend) — Flask, GPT-4o-mini vision
+
+## Made By
+
+- Frontend: [SlushEE0](https://github.com/slushee0) — [repo](https://github.com/SlushEE0/scrapp)
+- Backend & AI: [adikatre](https://github.com/adikatre) — [repo](https://github.com/adikatre/scrapp-backend)
 
 ---
 

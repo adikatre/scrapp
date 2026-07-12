@@ -6,8 +6,10 @@ import { getPostHogClient } from "./posthog-server";
 import { getDominantItemName, getDominantRoute } from "./locationCategories";
 
 const BACKEND_URL = process.env.NEXT_PRIVATE_BACKEND_URL || "";
+const BACKEND_API_KEY = process.env.BACKEND_API_KEY || "";
 
 if (!BACKEND_URL) throw new Error("[backend.ts] backend url not defined");
+if (!BACKEND_API_KEY) throw new Error("[backend.ts] backend api key not defined");
 
 type PredictReturnType =
   | [BaseStates.ERROR, null]
@@ -22,6 +24,9 @@ export async function predict(formData: FormData): Promise<PredictReturnType> {
   try {
     const res = await fetch(url, {
       method: "POST",
+      headers: {
+        Authorization: `Bearer ${BACKEND_API_KEY}`
+      },
       body: formData
     });
 
