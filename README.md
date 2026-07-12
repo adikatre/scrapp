@@ -1,4 +1,4 @@
-# Scrapp — Smart Waste Disposal Helper
+# Scrapp: Smart Waste Disposal Helper
 
 Photograph an item, get clear disposal guidance, and find nearby drop-off locations. Scrapp is a mobile-first PWA built to reduce recycling confusion and keep hazardous waste out of the wrong bins.
 
