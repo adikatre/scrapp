@@ -1,6 +1,7 @@
 import type { LocationCategoryKey } from "../locationCategories";
 import type { Place } from "../types";
 import { isWithinBounds, type GeoBounds } from "./geo";
+import { resolveDropoffKind } from "./items";
 import type { CuratedMatchInput, CuratedProvider } from "./types";
 
 /**
@@ -179,18 +180,19 @@ const SAN_DIEGO_COUNTY_BOUNDS: GeoBounds = {
 /** Battery disposal is routed to these categories by the classifier/frontend. */
 const CATEGORY_KEYS: LocationCategoryKey[] = ["hazardous", "e_waste"];
 
-function isBatteryItem(item?: string | null): boolean {
-  return item ? /batter(y|ies)/i.test(item) : false;
-}
-
 /**
- * Show these branches only when disposing of batteries (hazardous or e-waste)
- * within San Diego County — detected from real coordinates when available, else
- * from a location label mentioning San Diego (covers the page's default label).
+ * Show these branches only when disposing of household batteries (hazardous or
+ * e-waste) within San Diego County — detected from real coordinates when
+ * available, else from a location label mentioning San Diego (covers the page's
+ * default label).
+ *
+ * Household only: the branch collection boxes are sized for AAs and phone
+ * batteries, so an e-bike pack or a car battery has to go elsewhere (see
+ * ./items for the split).
  */
 function matches(input: CuratedMatchInput): boolean {
   if (!CATEGORY_KEYS.includes(input.categoryKey)) return false;
-  if (!isBatteryItem(input.item)) return false;
+  if (resolveDropoffKind(input) !== "household") return false;
 
   if (input.lat != null && input.lng != null) {
     return isWithinBounds(input.lat, input.lng, SAN_DIEGO_COUNTY_BOUNDS);

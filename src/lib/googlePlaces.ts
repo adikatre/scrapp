@@ -7,6 +7,7 @@ import {
   type LocationCategoryKey
 } from "./locationCategories";
 import { getCuratedPlaces } from "./curated";
+import { isSamePlace } from "./curated/geo";
 import { Place, PlaceDetails } from "./types";
 
 const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY ?? "";
@@ -63,6 +64,7 @@ export async function searchPlaces(input: {
   const curated = getCuratedPlaces({
     categoryKey: input.categoryKey,
     item: input.item,
+    queries: input.queries,
     lat: input.lat,
     lng: input.lng,
     locationLabel: input.locationLabel
@@ -108,11 +110,20 @@ export async function searchPlaces(input: {
   const merged: Place[] = [...curated];
   for (const place of curated) seen.add(place.id);
 
+  // Curated ids are not Google place ids, so a store that is both a curated
+  // drop-off and a Google result (every Home Depot, say) survives the id check
+  // above and would render as a second card and a stacked map pin. Match those
+  // by position and name instead, and keep the curated copy — it is the one that
+  // knows which batteries the store actually takes.
+  const isCuratedDuplicate = (place: Place) =>
+    curated.some((c) => isSamePlace(c, place));
+
   // Item-specific (LLM-grounded) results come first: they target the exact
   // scanned item, so they beat the generic category query in relevance.
   for (const result of itemResults) {
     for (const place of result.places) {
       if (seen.has(place.id)) continue;
+      if (isCuratedDuplicate(place)) continue;
       seen.add(place.id);
       merged.push(place);
     }
@@ -126,6 +137,7 @@ export async function searchPlaces(input: {
     for (const place of baseResult.places) {
       if (seen.has(place.id)) continue;
       if (category.excludeResultPattern?.test(place.name)) continue;
+      if (isCuratedDuplicate(place)) continue;
       seen.add(place.id);
       merged.push(place);
     }

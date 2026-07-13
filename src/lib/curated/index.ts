@@ -1,5 +1,11 @@
+import { haversineDistance } from "../geo";
 import type { Place } from "../types";
 import { sanDiegoBatteryProgram } from "./sanDiegoBatteries";
+import {
+  socalCellphoneProgram,
+  socalEbikeBatteryProgram,
+  socalHouseholdBatteryProgram
+} from "./socalBatteries";
 import type { CuratedMatchInput, CuratedProvider } from "./types";
 
 /**
@@ -7,7 +13,32 @@ import type { CuratedMatchInput, CuratedProvider } from "./types";
  * (copy ./sanDiegoBatteries as a template) and append it here — the search
  * pipeline picks it up automatically via `getCuratedPlaces`.
  */
-export const CURATED_PROVIDERS: CuratedProvider[] = [sanDiegoBatteryProgram];
+export const CURATED_PROVIDERS: CuratedProvider[] = [
+  sanDiegoBatteryProgram,
+  socalHouseholdBatteryProgram,
+  socalEbikeBatteryProgram,
+  socalCellphoneProgram
+];
+
+/**
+ * A matched provider's places, reduced to the `nearestLimit` closest sites when
+ * the provider sets one and the search has real coordinates. Keeps dense
+ * programs (hundreds of sites) from swamping the result list and map.
+ */
+function selectPlaces(provider: CuratedProvider, input: CuratedMatchInput): Place[] {
+  const { nearestLimit } = provider;
+  const { lat, lng } = input;
+  if (nearestLimit == null || lat == null || lng == null) {
+    return provider.places;
+  }
+  return [...provider.places]
+    .sort(
+      (a, b) =>
+        haversineDistance(lat, lng, a.lat, a.lng) -
+        haversineDistance(lat, lng, b.lat, b.lng)
+    )
+    .slice(0, nearestLimit);
+}
 
 /**
  * Curated places from every registered program that matches the current search,
@@ -20,7 +51,7 @@ export function getCuratedPlaces(input: CuratedMatchInput): Place[] {
 
   for (const provider of CURATED_PROVIDERS) {
     if (!provider.matches(input)) continue;
-    for (const place of provider.places) {
+    for (const place of selectPlaces(provider, input)) {
       if (seen.has(place.id)) continue;
       seen.add(place.id);
       places.push(place);

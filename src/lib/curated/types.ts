@@ -5,6 +5,13 @@ import type { Place } from "../types";
 export type CuratedMatchInput = {
   categoryKey: LocationCategoryKey;
   item?: string | null;
+  /**
+   * The classifier's own drop-off queries for this item. A fallback signal for
+   * what the item is: the item name is free text, so it can arrive as wording no
+   * rule anticipates ("Samsung Galaxy S21") while these still name the facility
+   * it needs. See `resolveDropoffKind` in ./items.
+   */
+  queries?: string[] | null;
   lat?: number | null;
   lng?: number | null;
   locationLabel?: string | null;
@@ -27,4 +34,6 @@ export type CuratedProvider = {
   matches(input: CuratedMatchInput): boolean;
   /** The curated drop-off sites, already shaped as `Place` cards/markers. */
   places: Place[];
+  /** When set and the search has coordinates, only this many nearest places are returned. */
+  nearestLimit?: number;
 };

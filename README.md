@@ -18,7 +18,7 @@ On mobile, open Scrapp in your browser and choose **Add to Home Screen** (Safari
 - Camera scan and image upload with optional text note
 - GPT-4o-mini vision classification with 9 disposal routes, confidence scores, and caveats
 - Interactive locations map with category filters and LLM-generated search queries from scan results
-- Curated local data (e.g. San Diego County free battery collection at library branches)
+- Curated local data — San Diego County free battery collection at library branches, plus ~690 Battery Network retail drop-off sites across Southern California, routed by battery type
 - Mobile-first responsive UI with separate mobile and desktop scan experiences
 - Installable PWA ([manifest.ts](src/app/manifest.ts))
 
@@ -63,7 +63,66 @@ See [.env.example](.env.example) for a template.
 | `src/app/locations/` | Map and place search |
 | `src/lib/backend.ts` | Server action that proxies to `/predict` |
 | `src/lib/googlePlaces.ts` | Places API search and details |
-| `src/lib/curated/` | Hand-curated local drop-off programs |
+| `src/lib/curated/` | Curated local drop-off programs |
+
+### Curated Drop-Off Data
+
+The locations page merges two sources: live Google Places results, and curated drop-off programs in
+[src/lib/curated/](src/lib/curated/). Each program owns its data plus a `matches()` rule deciding when
+that data is relevant, so adding one means a new module and a line in the registry
+([index.ts](src/lib/curated/index.ts)) — nothing in the search pipeline changes. Curated sites render as
+ordinary cards and map pins.
+
+| Program | Sites | Accepts |
+|---|---|---|
+| [sanDiegoBatteries.ts](src/lib/curated/sanDiegoBatteries.ts) | 16 County Library branches | Household batteries only |
+| [socalBatteries.ts](src/lib/curated/socalBatteries.ts) | ~690 Battery Network sites (Home Depot, Lowe's, bike shops, HHW facilities) across 10 SoCal counties | Split into three providers: household (rechargeable / single-use), e-bike (e-bike / high-energy packs), and cell phone |
+
+The split matters: a bike shop won't take your AAs, a library collection box won't take a 500Wh e-bike
+pack or a 40lb car battery, and a store with a battery bucket doesn't necessarily accept a whole
+handset. [items.ts](src/lib/curated/items.ts) holds the single definition of how a scanned item maps to
+one of these kinds, shared by every provider. Two things about it are easy to get wrong:
+
+- **It resolves to exactly one kind, via ordered rules.** The classifier's wording overlaps — a
+  "hoverboard battery" is both a hoverboard and a battery — and only the first reading routes it
+  somewhere that accepts it. `vehicle` (car / lead-acid / marine) is a real outcome, not a failure: no
+  curated site takes lead-acid, so it deliberately yields **no** curated places and leaves the search to
+  Google, which finds the auto parts stores that do.
+- **The item name is free text, so `search_queries` are a secondary signal — read strictly.** A phone
+  can arrive as "smartphone", "iPhone", or "Samsung Galaxy S21", and no regex over brand names catches
+  the last one. The classifier's queries are the fallback, but measuring the real model (gpt-4o-mini,
+  production prompt) showed they name the *facility*, not reliably the item: across a sample of
+  brand-name phones it **never** emitted "cell phone recycling" — it emitted "electronics recycling
+  drop-off", "Samsung device recycling center", and for several of them a generic **"battery recycling
+  drop-off"**. Taking that last one at face value reads a handset as a household battery and sends it to
+  a library collection box that won't accept it. So a query settles the kind only when it names the item
+  ("iPhone recycling drop-off", "car battery recycling"), never when it merely says "battery" — and only
+  when the name resolved to nothing, or an e-bike pack's own generic battery query would put libraries
+  back in front of a 500Wh pack. When nothing resolves, curated stays empty and Google's e-waste results
+  still render, which is the safe failure.
+
+Each provider caps how many sites it contributes via `nearestLimit`, so a few hundred retail sites can't
+bury the live results.
+
+#### Regenerating the data
+
+`socalBatteries.data.json` is **generated — do not hand-edit it.** It is built from
+`socal_battery_locations_live.csv` at the repo root (scraped by `sd_county_live_locator.py`):
+
+```bash
+npm run data:batteries   # wraps ../generate_socal_batteries_json.py
+```
+
+Two known quirks of the upstream data, both handled by the generator:
+
+- **`google_place_id` is address-level, not business-level.** The IDs resolve, but to a `street_address`
+  — Google returns `"21218 Roscoe Blvd"` rather than `"The Home Depot"`, with no hours or phone, and they
+  never match the place IDs Google's own search returns. So the app renders the CSV's own fields and never
+  looks these up. It also means Google results are de-duplicated against curated sites by name and
+  proximity (`isSamePlace` in [geo.ts](src/lib/curated/geo.ts)), not by ID.
+- **~20% of phone numbers are corrupt.** Upstream stored `1` + the 10-digit number in a 12-character
+  field, truncating the final digit (`166-186-2890` is really `661-862-890_`). The lost digit is
+  unrecoverable, so invalid numbers are dropped rather than shown.
 
 ### Architecture
 

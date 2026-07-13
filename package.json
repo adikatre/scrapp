@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "data:batteries": "python3 ../generate_socal_batteries_json.py"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.10",
