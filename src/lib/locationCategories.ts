@@ -163,17 +163,17 @@ export type CurbsideBinInfo = {
 const CURBSIDE_BINS: Record<string, CurbsideBinInfo> = {
   [BIN_BLUE]: {
     categoryKey: "recycle",
-    note: "Good news! This goes in your blue recycling bin at home. Rinse it, let it dry, and keep it loose (no bags). Put the lid back on. You do not need to drive anywhere. If you want, you can drop it off at a place below.",
+    note: "This goes in your blue recycling bin at home. If you want, you can drop it off at a place below.",
     accent: "border-blue-500/30 bg-blue-500/10"
   },
   [BIN_GREEN]: {
     categoryKey: "compost",
-    note: "Good news! This goes in your green food and yard bin at home. You do not need to drive anywhere. If you want, you can drop it off at a place below.",
+    note: "This goes in your green food and yard bin at home. You may also drop it off at a place below.",
     accent: "border-green-500/30 bg-green-500/10"
   },
   [BIN_GRAY]: {
     categoryKey: "general_trash",
-    note: "This goes in your gray trash bin at home. Just put it out with your normal trash. You do not need to drive anywhere. Never put batteries, bulbs, or electronics in any home bin.",
+    note: "This goes in your gray trash bin at home. Never put batteries, bulbs, or electronics in any home bin.",
     accent: "border-zinc-500/30 bg-zinc-500/10"
   }
 };
