@@ -83,7 +83,9 @@ function LocationsPageContent() {
   );
   const [places, setPlaces] = useState<Place[]>([]);
   const [listFilter, setListFilter] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  // Starts true so the first paint shows skeletons instead of flashing the
+  // "no places found" empty state while geolocation + the first search resolve.
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [locationReady, setLocationReady] = useState(false);
@@ -490,10 +492,28 @@ function LocationsPageContent() {
               />
 
               <div className="space-y-3 overflow-y-auto flex-1 min-h-0 pr-1">
-                {isLoading &&
-                  Array.from({ length: 4 }).map((_, i) => (
-                    <Skeleton key={i} className="h-24 w-full" />
-                  ))}
+                {isLoading && (
+                  <>
+                    <p className="text-sm text-muted-foreground animate-pulse">
+                      Finding drop-off places near you...
+                    </p>
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <Card key={i} className="p-4 bg-muted/50">
+                        <div className="flex items-start gap-3">
+                          <Skeleton className="h-14 w-14 shrink-0 rounded-md" />
+                          <div className="min-w-0 flex-1 space-y-2">
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-4 w-1/2" />
+                            <div className="flex gap-2 pt-1">
+                              <Skeleton className="h-8 w-28" />
+                              <Skeleton className="h-8 w-20" />
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </>
+                )}
 
                 {!isLoading && error && (
                   <Card className="p-4 bg-destructive/10 border-destructive/30">
