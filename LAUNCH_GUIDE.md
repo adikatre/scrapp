@@ -17,18 +17,18 @@ Two rules for all of it:
 1. **Never send a cold ask without a live link.** Ship the domain first. "Try it, takes 5 seconds" is the entire pitch.
 2. **Lead with the Congressional App Challenge result.** It is the reason a busy adult opens the email. Say it in the subject line or the first sentence, then move on to what the app does.
 
-Before sending anything, fill in: `[Your Name]`, `[School]`, `[Grade]`, `[scrapp.app]`, `[City/County]`.
+Your name, grade, school, district, city, and URL are already filled in below. Before sending, replace whatever brackets remain in the specific email you're using: the recipient's `[Name]`, and a few one-off fields like `[phone number]`, `[Branch]`, and `[Organization]`.
 
 ### Who to email, ranked by reach per minute spent
 
 | Target | How to find them | Why they say yes | Priority |
 | ------ | ---------------- | ---------------- | -------- |
 | **Your school's science teachers and green club advisor** | You already know them | Free 10-minute class activity that teaches waste sorting | **Do first** |
-| **City/county recycling coordinator** | `[City] recycling coordinator` on the city site; the environmental services department lists staff | Contamination in the bins is literally their job metric | **Do first** |
+| **City/county recycling coordinator** | `San Diego recycling coordinator` on the city site; the environmental services department lists staff | Contamination in the bins is literally their job metric | **Do first** |
 | **Local paper / patch.com / neighborhood news site** | Look for the "tips" or "community news" email on their contact page | "Award-winning local student ships free app" is a story they can run in an hour | **Do first** |
 | **School district sustainability or facilities office** | District website, usually under Operations | One yes puts a QR poster in every cafeteria in the district | High |
 | **Public library branch manager** | Branch page on the library site | Libraries actively look for free local tech to showcase | High |
-| **Local environmental nonprofits** | Search `[City] zero waste nonprofit`, plus groups like Surfrider chapters and county conservation orgs | They have newsletters and volunteers and no engineering budget | High |
+| **Local environmental nonprofits** | Search `San Diego zero waste nonprofit`, plus groups like Surfrider chapters and county conservation orgs | They have newsletters and volunteers and no engineering budget | High |
 | **HOA boards and apartment property managers** | Your own building or neighborhood first | Contaminated bins mean rejected pickups and fees they pay | Medium |
 | **Waste hauler community outreach staff** | The hauler on your own bin has a community or education contact | They fund school outreach programs already | Medium |
 | **Your congressional representative's office** | The staffer who ran the App Challenge already has your name | They publicize winners and have a district newsletter | Medium |
@@ -43,22 +43,22 @@ Before sending anything, fill in: `[Your Name]`, `[School]`, `[Grade]`, `[scrapp
 >
 > Hi [Teacher Name],
 >
-> I'm [Your Name], a [Grade] at [School]. I built an app called Scrapp that tells you which bin something goes in. You point your phone at an object and it tells you recycling, compost, trash, or hazardous, using [City]'s actual rules rather than generic ones. It placed 4th nationally in the Congressional App Challenge.
+> I'm Aditya Katre, a senior at Del Norte High School. I built an app called Scrapp that tells you which bin something goes in. You point your phone at an object and it tells you recycling, compost, trash, or hazardous, using San Diego's actual rules rather than generic ones. It placed 4th nationally in the Congressional App Challenge.
 >
-> It's free, there is no login, and it runs in a browser: [scrapp.app]
+> It's free, there is no login, and it runs in a browser: scrapp.app
 >
 > Would you be open to a 10-minute activity where students scan three items each and tell me what the app got wrong? It teaches the sorting rules and it gives me the feedback I need to make the app more accurate. I can run it myself or just send you the link and stay out of your way.
 >
 > Thanks for considering it,
-> [Your Name]
+> Aditya Katre
 
 ### Email 2: City or county recycling coordinator
 
-> **Subject:** Student-built app that reduces bin contamination in [City]
+> **Subject:** Student-built app that reduces bin contamination in San Diego
 >
 > Hi [Name],
 >
-> I'm [Your Name], a [Grade] at [School] in [City]. I built a free app called Scrapp that identifies an item from a phone photo and tells the user which bin it belongs in, using [City/County]'s published rules. It placed 4th nationally in the Congressional App Challenge and it is now live at [scrapp.app].
+> I'm Aditya Katre, a senior at Del Norte High School in San Diego. I built a free app called Scrapp that identifies an item from a phone photo and tells the user which bin it belongs in, using San Diego County's published rules. It placed 4th nationally in the Congressional App Challenge and it is now live at scrapp.app.
 >
 > I built it because sorting rules are local and most people guess. Wrong guesses are what create contamination in your recycling stream.
 >
@@ -70,38 +70,38 @@ Before sending anything, fill in: `[Your Name]`, `[School]`, `[Grade]`, `[scrapp
 > I'm happy to send you the current rules I have encoded so you can check them, and I'll correct anything that's wrong. There is no cost and nothing to sign up for.
 >
 > Thank you,
-> [Your Name]
+> Aditya Katre
 
 ### Email 3: Local press or patch.com
 
-> **Subject:** Local student's award-winning recycling app is now live for [City] residents
+> **Subject:** Local student's award-winning recycling app is now live for San Diego residents
 >
 > Hi [Name],
 >
-> I'm [Your Name], a [Grade] at [School]. My app, Scrapp, placed 4th nationally in the Congressional App Challenge, and as of this week it's live and free for anyone in [City] to use: [scrapp.app]
+> I'm Aditya Katre, a senior at Del Norte High School. My app, Scrapp, placed 4th nationally in the Congressional App Challenge, and as of this week it's live and free for anyone in San Diego to use: scrapp.app
 >
-> The idea is simple. You point your phone at something you're not sure about, a takeout container, a battery, a greasy pizza box, and it tells you which bin it goes in based on [City]'s actual rules. Most people guess, and wrong guesses contaminate whole recycling loads.
+> The idea is simple. You point your phone at something you're not sure about, a takeout container, a battery, a greasy pizza box, and it tells you which bin it goes in based on San Diego's actual rules. Most people guess, and wrong guesses contaminate whole recycling loads.
 >
-> I'm happy to do an interview, send screenshots, or demo it in person. I'm also working with [school club or department, if true] to put QR codes next to the bins at [School].
+> I'm happy to do an interview, send screenshots, or demo it in person. I'm also working with [school club or department, if true] to put QR codes next to the bins at Del Norte High School.
 >
 > Best,
-> [Your Name]
+> Aditya Katre
 > [phone number]
 
 ### Email 4: School district sustainability or facilities office
 
-> **Subject:** QR posters for cafeteria bins, free, built by a [School] student
+> **Subject:** QR posters for cafeteria bins, free, built by a Del Norte High School student
 >
 > Hi [Name],
 >
-> I'm [Your Name], a [Grade] at [School]. I built Scrapp, a free app that tells you which bin an item goes in from a phone photo. It placed 4th nationally in the Congressional App Challenge and it's live at [scrapp.app].
+> I'm Aditya Katre, a senior at Del Norte High School. I built Scrapp, a free app that tells you which bin an item goes in from a phone photo. It placed 4th nationally in the Congressional App Challenge and it's live at scrapp.app.
 >
-> I'd like to put a small QR poster next to the recycling bins at [School] that says "Not sure which bin? Scan it." If it works there, the same poster costs nothing to reproduce at every school in the district.
+> I'd like to put a small QR poster next to the recycling bins at Del Norte High School that says "Not sure which bin? Scan it." If it works there, the same poster costs nothing to reproduce at every school in Poway Unified.
 >
 > There's no cost, no data collection on students, and no account required. Who should I talk to about approval?
 >
 > Thanks,
-> [Your Name]
+> Aditya Katre
 
 ### Email 5: Public library branch manager
 
@@ -109,12 +109,12 @@ Before sending anything, fill in: `[Your Name]`, `[School]`, `[Grade]`, `[scrapp
 >
 > Hi [Name],
 >
-> I'm [Your Name], a [Grade] at [School] and a regular at the [Branch] branch. I built a free app called Scrapp that tells [City] residents which bin an item belongs in. It placed 4th nationally in the Congressional App Challenge and it's live at [scrapp.app].
+> I'm Aditya Katre, a senior at Del Norte High School and a regular at the [Branch] branch. I built a free app called Scrapp that tells San Diego residents which bin an item belongs in. It placed 4th nationally in the Congressional App Challenge and it's live at scrapp.app.
 >
 > Would you be willing to put a small flyer with a QR code on the community board, or near the recycling bin in the lobby? I can bring printed copies. I'd also be glad to do a short demo for a teen tech program if that's useful to you.
 >
 > Thank you,
-> [Your Name]
+> Aditya Katre
 
 ### Email 6: Local environmental nonprofit
 
@@ -122,14 +122,14 @@ Before sending anything, fill in: `[Your Name]`, `[School]`, `[Grade]`, `[scrapp
 >
 > Hi [Name],
 >
-> I'm [Your Name], a [Grade] at [School]. I follow [Organization]'s work on [specific thing they do, one clause].
+> I'm Aditya Katre, a senior at Del Norte High School. I follow [Organization]'s work on [specific thing they do, one clause].
 >
-> I built Scrapp, a free app that identifies an item from a phone photo and tells you which bin it goes in using [City]'s rules. It placed 4th nationally in the Congressional App Challenge and it's live now: [scrapp.app]
+> I built Scrapp, a free app that identifies an item from a phone photo and tells you which bin it goes in using San Diego's rules. It placed 4th nationally in the Congressional App Challenge and it's live now: scrapp.app
 >
 > If it holds up when you try it, would you consider sharing it with your volunteers or in a newsletter? I'd also welcome a critique. You know the local rules better than almost anyone, and if the app gets something wrong I want to fix it.
 >
 > Thanks,
-> [Your Name]
+> Aditya Katre
 
 ### Email 7: HOA board or apartment property manager
 
@@ -137,29 +137,29 @@ Before sending anything, fill in: `[Your Name]`, `[School]`, `[Grade]`, `[scrapp
 >
 > Hi [Name],
 >
-> I'm [Your Name], a resident at [Property] and a [Grade] at [School]. Contaminated recycling bins get rejected at pickup, and that cost lands on the property.
+> I'm Aditya Katre, a resident at [Property] and a senior at Del Norte High School. Contaminated recycling bins get rejected at pickup, and that cost lands on the property.
 >
-> I built a free app that fixes the guessing part. Residents point their phone at an item and it tells them which bin it goes in based on [City]'s rules. It placed 4th nationally in the Congressional App Challenge: [scrapp.app]
+> I built a free app that fixes the guessing part. Residents point their phone at an item and it tells them which bin it goes in based on San Diego's rules. It placed 4th nationally in the Congressional App Challenge: scrapp.app
 >
 > Could I post a small sign with a QR code in the trash enclosure? It costs nothing and it takes one page.
 >
 > Thanks,
-> [Your Name]
+> Aditya Katre
 
 ### Email 8: Your congressional representative's office (the App Challenge follow-up)
 
-> **Subject:** Congressional App Challenge follow-up: Scrapp is now live for [District] residents
+> **Subject:** Congressional App Challenge follow-up: Scrapp is now live for CA-50 residents
 >
 > Hi [Staffer Name],
 >
-> I'm [Your Name], [Grade] at [School]. My app Scrapp placed 4th in this year's Congressional App Challenge for [District].
+> I'm Aditya Katre, a senior at Del Norte High School. My app Scrapp placed 4th in this year's Congressional App Challenge for CA-50.
 >
-> I wanted to let you know I didn't stop at the submission. Scrapp is now a live, free public app that anyone in [City] can use to find out which bin an item goes in: [scrapp.app]
+> I wanted to let you know I didn't stop at the submission. Scrapp is now a live, free public app that anyone in San Diego can use to find out which bin an item goes in: scrapp.app
 >
-> If the office ever highlights what App Challenge participants do after the competition, I'd be glad to be part of that. I'm also reaching out to [City]'s waste department about keeping the local rules accurate, and an introduction there would help a lot if you have one.
+> If the office ever highlights what App Challenge participants do after the competition, I'd be glad to be part of that. I'm also reaching out to San Diego's waste department about keeping the local rules accurate, and an introduction there would help a lot if you have one.
 >
 > Thank you for running the challenge,
-> [Your Name]
+> Aditya Katre
 
 ---
 
@@ -169,21 +169,21 @@ Post only after the app is live and you've tested it on a phone over cellular. P
 
 Two things that make these posts work: ask for criticism rather than praise, and reply to every single comment. A post with 30 replies from you outperforms a post with 300 upvotes and silence.
 
-**Local subreddit (r/[yourcity]) or town Facebook group**
+**Local subreddit (r/sandiego) or town Facebook group**
 
-> I built a free app that tells you which bin something goes in, and I could use [City]'s help breaking it.
+> I built a free app that tells you which bin something goes in, and I could use San Diego's help breaking it.
 >
-> I'm a [Grade] at [School]. Recycling rules are different in every city and most of us are guessing, which is how whole loads get contaminated. So I built Scrapp: you point your phone at an item and it tells you recycling, compost, trash, or hazardous, using [City]'s actual rules.
+> I'm a senior at Del Norte High School. Recycling rules are different in every city and most of us are guessing, which is how whole loads get contaminated. So I built Scrapp: you point your phone at an item and it tells you recycling, compost, trash, or hazardous, using San Diego's actual rules.
 >
-> It's free, no account, no ads, works in the browser: [scrapp.app]
+> It's free, no account, no ads, works in the browser: scrapp.app
 >
 > It placed 4th nationally in the Congressional App Challenge, but the version that matters is the one that gets your bins right. So please go find something weird under your sink and try to make it fail. Post what it got wrong and I'll fix it this week.
 
 **Nextdoor**
 
-> Neighbors: I'm a [Grade] at [School] and I built a free app that tells you which bin an item goes in, based on [City]'s rules rather than generic ones.
+> Neighbors: I'm a senior at Del Norte High School and I built a free app that tells you which bin an item goes in, based on San Diego's rules rather than generic ones.
 >
-> Point your phone at the thing you're unsure about, like a takeout container or an old battery, and it tells you where it goes. No account, no ads, free: [scrapp.app]
+> Point your phone at the thing you're unsure about, like a takeout container or an old battery, and it tells you where it goes. No account, no ads, free: scrapp.app
 >
 > It placed 4th nationally in the Congressional App Challenge. If it gives you a wrong answer, tell me and I'll correct it.
 
@@ -191,7 +191,7 @@ Two things that make these posts work: ask for criticism rather than praise, and
 
 > Which bin does this go in? Most people guess. Wrong guesses contaminate the whole load.
 >
-> I built Scrapp to answer that in about 3 seconds using [City]'s actual rules. Free, no account, link in bio.
+> I built Scrapp to answer that in about 3 seconds using San Diego's actual rules. Free, no account, link in bio.
 >
 > 4th place nationally, Congressional App Challenge. Now it's live for everyone. Try to break it and tell me what it got wrong.
 
@@ -199,15 +199,69 @@ Two things that make these posts work: ask for criticism rather than praise, and
 
 > Scrapp is live.
 >
-> It's a free app that identifies an item from a phone photo and tells you which bin it belongs in, using local disposal rules instead of generic advice. I built it as a [Grade] at [School], and it placed 4th nationally in the Congressional App Challenge.
+> It's a free app that identifies an item from a phone photo and tells you which bin it belongs in, using local disposal rules instead of generic advice. I built it as a senior at Del Norte High School, and it placed 4th nationally in the Congressional App Challenge.
 >
-> The award was the starting point, not the finish. The version that matters is the one people actually use at the bin, so it's now public, free, and running on real local rules: [scrapp.app]
+> The award was the starting point, not the finish. The version that matters is the one people actually use at the bin, so it's now public, free, and running on real local rules: scrapp.app
 >
-> If you work in waste management, education, or sustainability in [City], I'd genuinely like your critique. Wrong answers are the only thing that can sink this, and I'd rather hear about them from you than not hear about them at all.
+> If you work in waste management, education, or sustainability in San Diego, I'd genuinely like your critique. Wrong answers are the only thing that can sink this, and I'd rather hear about them from you than not hear about them at all.
 
 **School announcement or student newspaper blurb**
 
-> Not sure if that goes in recycling? Scan it. Scrapp is a free app built by [Your Name], a [Grade] here, that tells you which bin an item goes in. It placed 4th nationally in the Congressional App Challenge. Try it at [scrapp.app] and tell [Your Name] what it gets wrong.
+> Not sure if that goes in recycling? Scan it. Scrapp is a free app built by senior Aditya Katre that tells you which bin an item goes in. It placed 4th nationally in the Congressional App Challenge. Try it at scrapp.app and tell Aditya what it gets wrong.
+
+---
+
+
+
+## What Comes After the CAC (verified July 2026)
+
+Short version: the Congressional App Challenge does not run a program that tracks what alumni build afterward. Their alumni track is three volunteer roles and one publicity campaign. So the CAC is a credential to spend, not a ladder to climb. The programs that actually reward what happens after a competition are elsewhere, and they all want the same evidence: real users, real accuracy, real partnerships. That is `IMPACT.md` from Hour 10, which now does double duty.
+
+### What the CAC itself offers alumni
+
+| Program | Who it's for | What it actually is | Your status |
+| ------- | ------------ | ------------------- | ----------- |
+| **Challenge Ambassadors** | High-school-aged alumni | Volunteer outreach in your district to recruit more entrants. Service hours, not funding or mentorship. | **Eligible now.** Apply this cycle, it's a cheap line on an application and a direct relationship with CAC staff. |
+| **Alumni Advisory Board** | Alumni enrolled in college | Oversees the Ambassadors program, runs alumni engagement. | Eligible next year, once you're in college. |
+| **Executive Leadership Board** | Early-career professional alumni | New as of 2026. Long horizon. | Not yet. |
+| **"25 for '25"** | Notable alumni, chosen by staff | Tenth-anniversary spotlight on alumni whose projects went somewhere (MathGPT, disaster-relief apps). **No published nomination process.** | The tracking is informal. Staff write up alumni they happen to notice. The lesson: be noticeable, and tell them. |
+
+Two constraints worth knowing:
+
+- **#HouseOfCode brings only the first-place app from each district.** It happened April 21 and 22, 2026 at the Capitol. A 4th-place finish does not get you there, so there is nothing more to extract from the CAC by competing again on the same submission.
+- **The alumni page is stale.** It still shows 2024 application text. Ambassador and Advisory Board applications historically open after #HouseOfCode, which already passed, so don't trust the page. Email and ask.
+
+### Email 9: CAC alumni staff
+
+The real purpose of this email is not the Ambassador role. It's that "what our alumni did afterward" is a story their comms team collects informally, and almost nobody writes in to give them one. Asking about Ambassadors is the natural excuse to hand them yours.
+
+> **To:** info@congressionalappchallenge.us
+>
+> **Subject:** Challenge Ambassador application timing, and what I built after CA-50
+>
+> Hi,
+>
+> I'm Aditya Katre, a senior at Del Norte High School. My app Scrapp placed 4th in CA-50 in the 2025 Congressional App Challenge.
+>
+> Two things.
+>
+> First, the alumni page still shows the 2024 application text for Challenge Ambassadors. Now that #HouseOfCode 2026 has passed, when does the next Ambassador cycle open? I'd like to apply while I'm still in high school.
+>
+> Second, in case it's useful to you: I didn't stop at the submission. Scrapp is now live and free at scrapp.app. It identifies an item from a phone photo and tells San Diego residents which bin it goes in, using the city's actual disposal rules rather than generic advice. I'm currently [N] scans in with [X]% accuracy as rated by users, and I'm working with [school club / the city's waste department] on keeping the local rules correct.
+>
+> If you ever collect what alumni do after the Challenge, I'm glad to be one of those stories.
+>
+> Thanks,
+> Aditya Katre
+
+### Programs that do reward post-competition traction
+
+| Program | Fit | Deadline | Notes |
+| ------- | --- | -------- | ----- |
+| **[Prudential Emerging Visionaries](https://www.changemakers.com/en/challenge/emergingvisionaries)** | **Best fit found.** Ages 14 to 18, for young people solving societal problems in their community. 25 winners, up to $15,000 each, plus a summit trip. | Applications open September, deadline **November 2, 2026** | Judged on community impact, not code. Your PostHog scan count, accuracy percentage, and any school or city partnership **are** the application. This is the single strongest reason to hit the Week 2 distribution targets. |
+| **[EPA President's Environmental Youth Award](https://www.epa.gov/education/presidents-environmental-youth-award)** | Federal recognition for K-12 environmental stewardship projects. | 2026 deadline (Jan 16) has passed. Next cycle expected **around January 2027** | Requires a teacher sponsor, which pairs directly with Email 1. By January 2027 you'd have six months of usage data and you'd still be in 12th grade, so you remain eligible. |
+
+**How this changes the plan:** it doesn't add work, it raises the stakes on work already scheduled. Hours 8 through 10 (distribution, then measurement in `IMPACT.md`) were already the highest-impact hours in this guide. They are now also the raw material for a $15,000 application due in November. Keep the numbers current.
 
 ---
 
@@ -369,4 +423,13 @@ Do all of these; each is ~20–30 min:
 - [Render vs Railway vs Fly.io pricing, 2026](https://dev.to/pavel-hostim/render-vs-railway-vs-flyio-pricing-compared-2026-2e5p) — Render free tier (spins down after 15 min) / $7 Starter; Railway $5 Hobby; Fly.io pay-as-you-go ~$8–25/mo
 - [Fly.io pricing](https://fly.io/pricing/)
 - OpenAI GPT-4o-mini vision pricing: platform.openai.com/pricing (~$0.001–0.003 per high-detail image at 1280px)
+
+**Post-CAC programs (checked July 2026):**
+
+- [CAC Alumni page](https://www.congressionalappchallenge.us/get-involved/alumni/) — Challenge Ambassadors (high school alumni) and Alumni Advisory Board (college alumni). Page still shows 2024 text; contact info@congressionalappchallenge.us for current timing.
+- [CAC Executive Leadership Board](https://www.congressionalappchallenge.us/a-new-chapter-the-congressional-app-challenge-executive-leadership-board/) — new alumni track for early-career professionals.
+- ["25 for '25" alumni campaign](https://www.congressionalappchallenge.us/celebrating-a-decade-of-innovation-app-challenge-names-25-for-25-alumni/) — staff-selected spotlight, no published nomination process.
+- [#HouseOfCode 2026](https://www.congressionalappchallenge.us/congressional-app-challenge-announces-houseofcode-2026-at-the-u-s-capitol/) — held April 21–22, 2026 at the U.S. Capitol; first-place district winners only.
+- [Prudential Emerging Visionaries](https://www.changemakers.com/en/challenge/emergingvisionaries) — ages 14–18, up to $15,000, deadline November 2, 2026.
+- [EPA President's Environmental Youth Award](https://www.epa.gov/education/presidents-environmental-youth-award) — K–12 environmental stewardship, teacher sponsor required, next cycle expected ~January 2027.
 
