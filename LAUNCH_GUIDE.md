@@ -8,6 +8,211 @@
 
 
 
+## Getting the Word Out: Targets and Copy-Paste Messages
+
+Email first, social second. Email reaches one person who can hand you an audience (a teacher with 150 students, a coordinator with a city newsletter, a reporter with 20,000 readers). Social reaches strangers one at a time and mostly dies in a day. Do the emails in week 2 and treat every social post as a follow-up to something an email already produced.
+
+Two rules for all of it:
+
+1. **Never send a cold ask without a live link.** Ship the domain first. "Try it, takes 5 seconds" is the entire pitch.
+2. **Lead with the Congressional App Challenge result.** It is the reason a busy adult opens the email. Say it in the subject line or the first sentence, then move on to what the app does.
+
+Before sending anything, fill in: `[Your Name]`, `[School]`, `[Grade]`, `[scrapp.app]`, `[City/County]`.
+
+### Who to email, ranked by reach per minute spent
+
+| Target | How to find them | Why they say yes | Priority |
+| ------ | ---------------- | ---------------- | -------- |
+| **Your school's science teachers and green club advisor** | You already know them | Free 10-minute class activity that teaches waste sorting | **Do first** |
+| **City/county recycling coordinator** | `[City] recycling coordinator` on the city site; the environmental services department lists staff | Contamination in the bins is literally their job metric | **Do first** |
+| **Local paper / patch.com / neighborhood news site** | Look for the "tips" or "community news" email on their contact page | "Award-winning local student ships free app" is a story they can run in an hour | **Do first** |
+| **School district sustainability or facilities office** | District website, usually under Operations | One yes puts a QR poster in every cafeteria in the district | High |
+| **Public library branch manager** | Branch page on the library site | Libraries actively look for free local tech to showcase | High |
+| **Local environmental nonprofits** | Search `[City] zero waste nonprofit`, plus groups like Surfrider chapters and county conservation orgs | They have newsletters and volunteers and no engineering budget | High |
+| **HOA boards and apartment property managers** | Your own building or neighborhood first | Contaminated bins mean rejected pickups and fees they pay | Medium |
+| **Waste hauler community outreach staff** | The hauler on your own bin has a community or education contact | They fund school outreach programs already | Medium |
+| **Your congressional representative's office** | The staffer who ran the App Challenge already has your name | They publicize winners and have a district newsletter | Medium |
+| **Scout troops, robotics teams, NHS chapters** | Local troop or team websites | Service hours plus an easy activity | Medium |
+| **University or community college sustainability office** | Campus sustainability page | Dorm contamination is a constant problem for them | Optional |
+
+---
+
+### Email 1: Science teacher or green club advisor (send this one first)
+
+> **Subject:** Free waste-sorting app for a 10-minute class activity
+>
+> Hi [Teacher Name],
+>
+> I'm [Your Name], a [Grade] at [School]. I built an app called Scrapp that tells you which bin something goes in. You point your phone at an object and it tells you recycling, compost, trash, or hazardous, using [City]'s actual rules rather than generic ones. It placed 4th nationally in the Congressional App Challenge.
+>
+> It's free, there is no login, and it runs in a browser: [scrapp.app]
+>
+> Would you be open to a 10-minute activity where students scan three items each and tell me what the app got wrong? It teaches the sorting rules and it gives me the feedback I need to make the app more accurate. I can run it myself or just send you the link and stay out of your way.
+>
+> Thanks for considering it,
+> [Your Name]
+
+### Email 2: City or county recycling coordinator
+
+> **Subject:** Student-built app that reduces bin contamination in [City]
+>
+> Hi [Name],
+>
+> I'm [Your Name], a [Grade] at [School] in [City]. I built a free app called Scrapp that identifies an item from a phone photo and tells the user which bin it belongs in, using [City/County]'s published rules. It placed 4th nationally in the Congressional App Challenge and it is now live at [scrapp.app].
+>
+> I built it because sorting rules are local and most people guess. Wrong guesses are what create contamination in your recycling stream.
+>
+> Two things I would value from your department:
+>
+> 1. Confirmation that I am using your current accepted-materials list correctly, so residents get accurate answers.
+> 2. If you find it useful, a mention in a resident newsletter or on your recycling page.
+>
+> I'm happy to send you the current rules I have encoded so you can check them, and I'll correct anything that's wrong. There is no cost and nothing to sign up for.
+>
+> Thank you,
+> [Your Name]
+
+### Email 3: Local press or patch.com
+
+> **Subject:** Local student's award-winning recycling app is now live for [City] residents
+>
+> Hi [Name],
+>
+> I'm [Your Name], a [Grade] at [School]. My app, Scrapp, placed 4th nationally in the Congressional App Challenge, and as of this week it's live and free for anyone in [City] to use: [scrapp.app]
+>
+> The idea is simple. You point your phone at something you're not sure about, a takeout container, a battery, a greasy pizza box, and it tells you which bin it goes in based on [City]'s actual rules. Most people guess, and wrong guesses contaminate whole recycling loads.
+>
+> I'm happy to do an interview, send screenshots, or demo it in person. I'm also working with [school club or department, if true] to put QR codes next to the bins at [School].
+>
+> Best,
+> [Your Name]
+> [phone number]
+
+### Email 4: School district sustainability or facilities office
+
+> **Subject:** QR posters for cafeteria bins, free, built by a [School] student
+>
+> Hi [Name],
+>
+> I'm [Your Name], a [Grade] at [School]. I built Scrapp, a free app that tells you which bin an item goes in from a phone photo. It placed 4th nationally in the Congressional App Challenge and it's live at [scrapp.app].
+>
+> I'd like to put a small QR poster next to the recycling bins at [School] that says "Not sure which bin? Scan it." If it works there, the same poster costs nothing to reproduce at every school in the district.
+>
+> There's no cost, no data collection on students, and no account required. Who should I talk to about approval?
+>
+> Thanks,
+> [Your Name]
+
+### Email 5: Public library branch manager
+
+> **Subject:** Free local app for your community bulletin board
+>
+> Hi [Name],
+>
+> I'm [Your Name], a [Grade] at [School] and a regular at the [Branch] branch. I built a free app called Scrapp that tells [City] residents which bin an item belongs in. It placed 4th nationally in the Congressional App Challenge and it's live at [scrapp.app].
+>
+> Would you be willing to put a small flyer with a QR code on the community board, or near the recycling bin in the lobby? I can bring printed copies. I'd also be glad to do a short demo for a teen tech program if that's useful to you.
+>
+> Thank you,
+> [Your Name]
+
+### Email 6: Local environmental nonprofit
+
+> **Subject:** Free bin-sorting app for your volunteers and newsletter
+>
+> Hi [Name],
+>
+> I'm [Your Name], a [Grade] at [School]. I follow [Organization]'s work on [specific thing they do, one clause].
+>
+> I built Scrapp, a free app that identifies an item from a phone photo and tells you which bin it goes in using [City]'s rules. It placed 4th nationally in the Congressional App Challenge and it's live now: [scrapp.app]
+>
+> If it holds up when you try it, would you consider sharing it with your volunteers or in a newsletter? I'd also welcome a critique. You know the local rules better than almost anyone, and if the app gets something wrong I want to fix it.
+>
+> Thanks,
+> [Your Name]
+
+### Email 7: HOA board or apartment property manager
+
+> **Subject:** Reducing contaminated bin pickups at [Property Name]
+>
+> Hi [Name],
+>
+> I'm [Your Name], a resident at [Property] and a [Grade] at [School]. Contaminated recycling bins get rejected at pickup, and that cost lands on the property.
+>
+> I built a free app that fixes the guessing part. Residents point their phone at an item and it tells them which bin it goes in based on [City]'s rules. It placed 4th nationally in the Congressional App Challenge: [scrapp.app]
+>
+> Could I post a small sign with a QR code in the trash enclosure? It costs nothing and it takes one page.
+>
+> Thanks,
+> [Your Name]
+
+### Email 8: Your congressional representative's office (the App Challenge follow-up)
+
+> **Subject:** Congressional App Challenge follow-up: Scrapp is now live for [District] residents
+>
+> Hi [Staffer Name],
+>
+> I'm [Your Name], [Grade] at [School]. My app Scrapp placed 4th in this year's Congressional App Challenge for [District].
+>
+> I wanted to let you know I didn't stop at the submission. Scrapp is now a live, free public app that anyone in [City] can use to find out which bin an item goes in: [scrapp.app]
+>
+> If the office ever highlights what App Challenge participants do after the competition, I'd be glad to be part of that. I'm also reaching out to [City]'s waste department about keeping the local rules accurate, and an introduction there would help a lot if you have one.
+>
+> Thank you for running the challenge,
+> [Your Name]
+
+---
+
+### Social media, secondary channel
+
+Post only after the app is live and you've tested it on a phone over cellular. Post in the places where local people actually are, in this order: local subreddit, Nextdoor, neighborhood Facebook groups, then Instagram and LinkedIn.
+
+Two things that make these posts work: ask for criticism rather than praise, and reply to every single comment. A post with 30 replies from you outperforms a post with 300 upvotes and silence.
+
+**Local subreddit (r/[yourcity]) or town Facebook group**
+
+> I built a free app that tells you which bin something goes in, and I could use [City]'s help breaking it.
+>
+> I'm a [Grade] at [School]. Recycling rules are different in every city and most of us are guessing, which is how whole loads get contaminated. So I built Scrapp: you point your phone at an item and it tells you recycling, compost, trash, or hazardous, using [City]'s actual rules.
+>
+> It's free, no account, no ads, works in the browser: [scrapp.app]
+>
+> It placed 4th nationally in the Congressional App Challenge, but the version that matters is the one that gets your bins right. So please go find something weird under your sink and try to make it fail. Post what it got wrong and I'll fix it this week.
+
+**Nextdoor**
+
+> Neighbors: I'm a [Grade] at [School] and I built a free app that tells you which bin an item goes in, based on [City]'s rules rather than generic ones.
+>
+> Point your phone at the thing you're unsure about, like a takeout container or an old battery, and it tells you where it goes. No account, no ads, free: [scrapp.app]
+>
+> It placed 4th nationally in the Congressional App Challenge. If it gives you a wrong answer, tell me and I'll correct it.
+
+**Instagram caption (pair with a 10 second screen recording of a real scan)**
+
+> Which bin does this go in? Most people guess. Wrong guesses contaminate the whole load.
+>
+> I built Scrapp to answer that in about 3 seconds using [City]'s actual rules. Free, no account, link in bio.
+>
+> 4th place nationally, Congressional App Challenge. Now it's live for everyone. Try to break it and tell me what it got wrong.
+
+**LinkedIn (for reaching teachers, city staff, and nonprofit people, who are the ones who actually open LinkedIn)**
+
+> Scrapp is live.
+>
+> It's a free app that identifies an item from a phone photo and tells you which bin it belongs in, using local disposal rules instead of generic advice. I built it as a [Grade] at [School], and it placed 4th nationally in the Congressional App Challenge.
+>
+> The award was the starting point, not the finish. The version that matters is the one people actually use at the bin, so it's now public, free, and running on real local rules: [scrapp.app]
+>
+> If you work in waste management, education, or sustainability in [City], I'd genuinely like your critique. Wrong answers are the only thing that can sink this, and I'd rather hear about them from you than not hear about them at all.
+
+**School announcement or student newspaper blurb**
+
+> Not sure if that goes in recycling? Scan it. Scrapp is a free app built by [Your Name], a [Grade] here, that tells you which bin an item goes in. It placed 4th nationally in the Congressional App Challenge. Try it at [scrapp.app] and tell [Your Name] what it gets wrong.
+
+---
+
+
+
 ## 0. The One Strategic Decision (make it before spending an hour)
 
 **Drop YOLO from the production path. Ship GPT-4o-mini vision as the only classifier.**

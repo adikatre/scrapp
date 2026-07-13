@@ -44,15 +44,26 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000). Start the backend on port 5000 before scanning.
 
+### Scripts
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Next.js dev server with Turbopack on :3000 |
+| `npm run build` | Production build |
+| `npm start` | Serve the production build (run `build` first) |
+| `npm run lint` | ESLint via `next lint` |
+| `npm run data:batteries` | **Regenerates** `src/lib/curated/socalBatteries.data.json` from the CSV at the repo root — see [Regenerating the data](#regenerating-the-data). Needs `python3` on PATH; the only script here that writes to source files |
+
 ### Environment Variables
 
 | Variable | Purpose |
 |---|---|
 | `NEXT_PRIVATE_BACKEND_URL` | Flask backend URL (e.g. `http://localhost:5000`) |
+| `BACKEND_API_KEY` | Shared secret sent to the backend as `Authorization: Bearer <key>`. Must match `BACKEND_API_KEY` on the backend exactly, or every scan comes back `401`. [backend.ts](src/lib/backend.ts) throws at startup if it's unset |
 | `GOOGLE_PLACES_API_KEY` | Server-side Places search (keep secret) |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Client-side map tiles (restrict by domain in production) |
 
-See [.env.example](.env.example) for a template.
+Only `NEXT_PUBLIC_`-prefixed variables reach the browser; the rest stay server-side. See [.env.example](.env.example) for a template.
 
 ### Project Structure
 
@@ -61,9 +72,10 @@ See [.env.example](.env.example) for a template.
 | `src/app/page.tsx` | Landing page |
 | `src/app/cam/` | Scan flow (mobile and desktop UIs) |
 | `src/app/locations/` | Map and place search |
-| `src/lib/backend.ts` | Server action that proxies to `/predict` |
+| `src/lib/backend.ts` | Server action that proxies to `/predict` (adds the bearer token) |
 | `src/lib/googlePlaces.ts` | Places API search and details |
 | `src/lib/curated/` | Curated local drop-off programs |
+| `src/app/api/place-photo/` | Route handler that proxies Places photos so the key stays server-side |
 
 ### Curated Drop-Off Data
 
@@ -134,7 +146,7 @@ User → Next.js PWA → server action → Flask /predict → GPT-4o-mini
 
 ## Deployment
 
-Deploy the frontend to Vercel and the backend to Render or Railway. Set `NEXT_PRIVATE_BACKEND_URL` to your production backend URL and restrict `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` to your domain in Google Cloud Console.
+Deploy the frontend to Vercel and the backend to Railway or Render. Set `NEXT_PRIVATE_BACKEND_URL` to your production backend URL, set the same `BACKEND_API_KEY` on both sides, and restrict `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` to your domain in Google Cloud Console.
 
 For a full launch checklist — budget, metrics, distribution, and ops — see [LAUNCH_GUIDE.md](LAUNCH_GUIDE.md).
 
