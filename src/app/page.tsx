@@ -381,7 +381,9 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="py-8 text-center text-muted-foreground text-sm">
         <p>Making waste disposal less confusing, one photo at a time.</p>
-        <p>Data from the <a href='https://blogs.worldbank.org/en/sustainablecities/how-the-world-bank-is-tackling-the-growing-global-waste-crisis'>The World Bank</a>.</p>
+
+        
+
       </footer>
     </div>
   );
