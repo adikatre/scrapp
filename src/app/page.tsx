@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Recycle, Trash2, ArrowDown, Camera, MapPin, Globe } from "lucide-react";
+import { ArrowRight, Recycle, Trash2, ArrowDown, Camera, MapPin, Globe, Github } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // This is a custom hook to detect if an element is visible on the screen.
@@ -381,9 +381,26 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="py-8 text-center text-muted-foreground text-sm">
         <p>Making waste disposal less confusing, one photo at a time.</p>
-
-        
-
+        <div className="mt-4 flex items-center justify-center gap-4">
+          <a
+            href="https://github.com/adikatre/scrapp"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors"
+          >
+            <Github className="h-4 w-4" />
+            Frontend
+          </a>
+          <a
+            href="https://github.com/adikatre/scrapp-backend"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors"
+          >
+            <Github className="h-4 w-4" />
+            Backend
+          </a>
+        </div>
       </footer>
     </div>
   );
