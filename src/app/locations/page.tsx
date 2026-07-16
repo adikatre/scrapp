@@ -8,7 +8,7 @@ import React, {
   useRef,
   useState
 } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { APIProvider } from "@vis.gl/react-google-maps";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 import { LocationsMap } from "@/components/LocationsMap";
 import {
   LocationSearchInput,
@@ -25,6 +31,7 @@ import { getPlaceDetails, searchPlaces } from "@/lib/googlePlaces";
 import {
   getCategoryByKey,
   getCurbsideBinInfo,
+  getItemSubcategories,
   itemAffectsSearch,
   LOCATION_CATEGORIES,
   type LocationCategoryKey
@@ -50,6 +57,7 @@ import {
 } from "lucide-react";
 
 function LocationsPageContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialCategory =
     (searchParams.get("category") as LocationCategoryKey) || "recycle";
@@ -255,7 +263,16 @@ function LocationsPageContent() {
   useEffect(() => {
     if (!locationReady) return;
     runSearchRef.current();
-  }, [activeCategory, locationReady]);
+  }, [activeCategory, locationReady, scannedItem, scannedQueries]);
+
+  // Sub-category picks route through the same URL params the scanner uses
+  // (?item drives the item-specific Places query), keeping one search path.
+  const handleSelectSubcategory = (
+    key: LocationCategoryKey,
+    item: string
+  ) => {
+    router.push(`/locations?category=${key}&item=${encodeURIComponent(item)}`);
+  };
 
   const filteredPlaces = useMemo(() => {
     const q = listFilter.trim().toLowerCase();
@@ -435,18 +452,50 @@ function LocationsPageContent() {
           )}
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 shrink-0">
-            {LOCATION_CATEGORIES.map(({ key, label, icon: Icon }) => (
-              <Button
-                key={key}
-                variant={activeCategory === key ? "default" : "outline"}
-                onClick={() => setActiveCategory(key)}
-                className="flex items-center gap-1.5 text-xs px-2"
-                size="sm"
-              >
-                <Icon className="h-3.5 w-3.5 shrink-0" />
-                {label}
-              </Button>
-            ))}
+            {LOCATION_CATEGORIES.map(({ key, label, icon: Icon }) => {
+              const subcategories = getItemSubcategories(key);
+              return (
+                <div key={key} className="flex">
+                  <Button
+                    variant={activeCategory === key ? "default" : "outline"}
+                    onClick={() => setActiveCategory(key)}
+                    className={`flex-1 min-w-0 items-center gap-1.5 text-xs px-2 ${
+                      subcategories.length > 0 ? "rounded-r-none" : ""
+                    }`}
+                    size="sm"
+                  >
+                    <Icon className="h-3.5 w-3.5 shrink-0" />
+                    {label}
+                  </Button>
+                  {subcategories.length > 0 && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-l-none border-l-0 px-1.5"
+                          aria-label={`${label} sub-categories`}
+                        >
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {subcategories.map((sub) => (
+                          <DropdownMenuItem
+                            key={sub.item}
+                            onSelect={() =>
+                              handleSelectSubcategory(key, sub.item)
+                            }
+                          >
+                            {sub.label}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {showCurbsideNote && curbsideBin && (

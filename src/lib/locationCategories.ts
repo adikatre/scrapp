@@ -287,6 +287,8 @@ export function getDominantItemName(result: PredictionResult): string {
 const ITEM_QUERY_CATEGORIES: LocationCategoryKey[] = ["e_waste", "hazardous"];
 
 type ItemQueryRule = {
+  /** Display name in the category's sub-category dropdown */
+  label: string;
   /** Case-insensitive substrings matched against the sanitized item name */
   keywords: string[];
   /** Places text query template (use {location} placeholder) */
@@ -296,36 +298,52 @@ type ItemQueryRule = {
 
 const ITEM_QUERY_RULES: ItemQueryRule[] = [
   {
+    label: "Batteries",
     keywords: ["battery", "batteries"],
     searchQuery: "battery recycling drop-off {location}",
     categories: ["e_waste", "hazardous"]
   },
   {
+    label: "Light Bulbs",
     keywords: ["light bulb", "lightbulb", "cfl", "fluorescent", "led bulb"],
     searchQuery: "light bulb recycling drop-off {location}",
     categories: ["e_waste", "hazardous"]
   },
   {
+    label: "Paint & Stains",
     keywords: ["paint", "varnish", "stain"],
     searchQuery: "paint disposal drop-off site {location}",
     categories: ["hazardous"]
   },
   {
+    label: "Motor Oil & Antifreeze",
     keywords: ["motor oil", "engine oil", "used oil", "antifreeze"],
     searchQuery: "used motor oil recycling drop-off {location}",
     categories: ["hazardous"]
   },
   {
+    label: "Ink & Toner Cartridges",
     keywords: ["ink cartridge", "printer cartridge", "toner"],
     searchQuery: "ink cartridge recycling drop-off {location}",
     categories: ["e_waste"]
   },
   {
+    label: "Phones & Laptops",
     keywords: ["phone", "smartphone", "cell phone", "tablet", "laptop"],
     searchQuery: "cell phone and electronics recycling drop-off {location}",
     categories: ["e_waste"]
   }
 ];
+
+/** Item-specific sub-categories shown in a category's dropdown; `item` feeds
+ * the same `?item=` param the scanner uses, so search behavior is identical. */
+export function getItemSubcategories(
+  categoryKey: LocationCategoryKey
+): { label: string; item: string }[] {
+  return ITEM_QUERY_RULES.filter((r) =>
+    r.categories.includes(categoryKey)
+  ).map((r) => ({ label: r.label, item: r.keywords[0] }));
+}
 
 /** Item names arrive via a public URL param and feed a Places API query */
 function sanitizeItemName(raw: string | null | undefined): string {
