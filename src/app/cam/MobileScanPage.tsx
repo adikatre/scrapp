@@ -1,31 +1,24 @@
 "use client";
 
-import { ChangeEvent, KeyboardEvent, useRef, useState } from "react";
+import {Camera as CameraIcon, Loader2, RotateCcw, ScanLine, Upload} from "lucide-react";
+import {type ChangeEvent, type KeyboardEvent, useRef, useState} from "react";
 import Webcam from "react-webcam";
-
-import {
-  Camera as CameraIcon,
-  Loader2,
-  RotateCcw,
-  ScanLine,
-  Upload
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { ImageDetectionViewer } from "@/components/ImageDetectionViewer";
-import { DisposalTicket } from "@/components/DisposalTicket";
-import { ScanHistorySheet } from "@/components/ScanHistorySheet";
-import { predict } from "@/lib/backend";
-import { BaseStates } from "@/lib/states";
-import { ScanTicket } from "@/lib/types";
-import { dataURLtoFile, summarizePrediction } from "@/lib/utils";
+import {toast} from "sonner";
+import {DisposalTicket} from "@/components/DisposalTicket";
+import {ImageDetectionViewer} from "@/components/ImageDetectionViewer";
+import {ScanHistorySheet} from "@/components/ScanHistorySheet";
+import {Button} from "@/components/ui/button";
+import {Textarea} from "@/components/ui/textarea";
+import {predict} from "@/lib/backend";
 import {
   getDominantBin,
   getDominantItemName,
   getDominantRoute,
   getDominantSearchQueries
 } from "@/lib/locationCategories";
+import {BaseStates} from "@/lib/states";
+import type {ScanTicket} from "@/lib/types";
+import {dataURLtoFile, summarizePrediction} from "@/lib/utils";
 
 interface MobileScanPageProps {
   activeTicket: ScanTicket | null;
@@ -55,19 +48,13 @@ export default function MobileScanPage({
   const [note, setNote] = useState("");
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const cameraRef = useRef<Webcam>(null);
-  const [cameraFacingMode, setCameraFacingMode] = useState<
-    "user" | "environment"
-  >("environment");
+  const [cameraFacingMode, setCameraFacingMode] = useState<"user" | "environment">("environment");
   const [isCapturing, setIsCapturing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
-  const [selectedImageForViewer, setSelectedImageForViewer] = useState<
-    string | null
-  >(null);
+  const [selectedImageForViewer, setSelectedImageForViewer] = useState<string | null>(null);
 
-  const handleTextareaKeypress = function (
-    e: KeyboardEvent<HTMLTextAreaElement>
-  ) {
+  const handleTextareaKeypress = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.shiftKey) return;
 
     if (e.key === "Enter") {
@@ -77,7 +64,7 @@ export default function MobileScanPage({
     }
   };
 
-  const handleCaptureImage = function () {
+  const handleCaptureImage = () => {
     if (cameraRef.current) {
       setIsCapturing(true);
       setTimeout(() => {
@@ -88,15 +75,15 @@ export default function MobileScanPage({
     }
   };
 
-  const handleSwitchCamera = function () {
+  const handleSwitchCamera = () => {
     setCameraFacingMode((prev) => (prev === "user" ? "environment" : "user"));
   };
 
-  const handleRetake = function () {
+  const handleRetake = () => {
     setCapturedImage(null);
   };
 
-  const handleUploadImage = function () {
+  const handleUploadImage = () => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
@@ -114,11 +101,11 @@ export default function MobileScanPage({
     input.remove();
   };
 
-  const handleModifyNote = function (e: ChangeEvent<HTMLTextAreaElement>) {
+  const handleModifyNote = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setNote(e.target.value);
   };
 
-  const handleScan = async function () {
+  const handleScan = async () => {
     if (!capturedImage) {
       toast.error("Capture or upload a photo first");
       return;
@@ -160,7 +147,7 @@ export default function MobileScanPage({
     }
   };
 
-  const handleOpenActiveTicketViewer = function () {
+  const handleOpenActiveTicketViewer = () => {
     if (!activeTicket?.image) return;
     setSelectedImageForViewer(activeTicket.image);
     setViewerOpen(true);
@@ -298,11 +285,7 @@ export default function MobileScanPage({
 
       {/* Top overlay bar - history + camera switch, kept out of the way */}
       <div className="absolute inset-x-0 top-0 flex items-center justify-between p-4 pt-[max(1rem,env(safe-area-inset-top))]">
-        <ScanHistorySheet
-          tickets={pastTickets}
-          onSelect={onSelectTicket}
-          side="left"
-        />
+        <ScanHistorySheet tickets={pastTickets} onSelect={onSelectTicket} side="left" />
         {!activeTicket && !capturedImage && isMobile && (
           <Button
             onClick={handleSwitchCamera}

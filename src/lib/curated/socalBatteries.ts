@@ -1,9 +1,9 @@
-import type { LocationCategoryKey } from "../locationCategories";
-import type { Place } from "../types";
-import { isWithinBounds, type GeoBounds } from "./geo";
-import { resolveDropoffKind } from "./items";
+import type {LocationCategoryKey} from "../locationCategories";
+import type {Place} from "../types";
+import {type GeoBounds, isWithinBounds} from "./geo";
+import {resolveDropoffKind} from "./items";
 import RECORDS from "./socalBatteries.data.json";
-import type { CuratedMatchInput, CuratedProvider } from "./types";
+import type {CuratedMatchInput, CuratedProvider} from "./types";
 
 /**
  * Battery Network (batterynetwork.org) drop-off sites across Southern
@@ -44,18 +44,10 @@ const MATERIAL_LABELS: Record<string, string> = {
 };
 
 /** Canonical label order so notes read consistently across sites. */
-const MATERIAL_ORDER = [
-  "rechargeable",
-  "singleuse",
-  "highenergybattery",
-  "ebike",
-  "cellphones"
-];
+const MATERIAL_ORDER = ["rechargeable", "singleuse", "highenergybattery", "ebike", "cellphones"];
 
 function buildNote(materials: string[]): string {
-  const labels = MATERIAL_ORDER.filter((m) => materials.includes(m)).map(
-    (m) => MATERIAL_LABELS[m]
-  );
+  const labels = MATERIAL_ORDER.filter((m) => materials.includes(m)).map((m) => MATERIAL_LABELS[m]);
   return `Accepts: ${labels.join(", ")}. Tape battery terminals before drop-off.`;
 }
 
@@ -81,22 +73,20 @@ function acceptsAny(site: SiteRecord, wanted: Set<string>): boolean {
   return site.materials.some((m) => wanted.has(m));
 }
 
-const HOUSEHOLD_PLACES: Place[] = SITES.filter((s) =>
-  acceptsAny(s, HOUSEHOLD_MATERIALS)
-).map(toPlace);
+const HOUSEHOLD_PLACES: Place[] = SITES.filter((s) => acceptsAny(s, HOUSEHOLD_MATERIALS)).map(
+  toPlace
+);
 
-const EBIKE_PLACES: Place[] = SITES.filter((s) =>
-  acceptsAny(s, EBIKE_MATERIALS)
-).map(toPlace);
+const EBIKE_PLACES: Place[] = SITES.filter((s) => acceptsAny(s, EBIKE_MATERIALS)).map(toPlace);
 
 /**
  * Narrower than the household set on purpose: a store with a battery bucket does
  * not necessarily take a whole handset, so a phone only goes to sites that
  * explicitly collect them.
  */
-const CELLPHONE_PLACES: Place[] = SITES.filter((s) =>
-  acceptsAny(s, CELLPHONE_MATERIALS)
-).map(toPlace);
+const CELLPHONE_PLACES: Place[] = SITES.filter((s) => acceptsAny(s, CELLPHONE_MATERIALS)).map(
+  toPlace
+);
 
 /** Rough bounding box covering the swept SoCal counties. */
 const SOCAL_BOUNDS: GeoBounds = {
@@ -126,8 +116,7 @@ function isInSocal(input: CuratedMatchInput): boolean {
 export const socalHouseholdBatteryProgram: CuratedProvider = {
   id: "socal-battery-network-household",
   name: "Battery Network: SoCal household battery drop-off",
-  matches: (input) =>
-    isInSocal(input) && resolveDropoffKind(input) === "household",
+  matches: (input) => isInSocal(input) && resolveDropoffKind(input) === "household",
   places: HOUSEHOLD_PLACES,
   nearestLimit: 25
 };
@@ -135,8 +124,7 @@ export const socalHouseholdBatteryProgram: CuratedProvider = {
 export const socalCellphoneProgram: CuratedProvider = {
   id: "socal-battery-network-cellphone",
   name: "Battery Network: SoCal cell phone drop-off",
-  matches: (input) =>
-    isInSocal(input) && resolveDropoffKind(input) === "cellphone",
+  matches: (input) => isInSocal(input) && resolveDropoffKind(input) === "cellphone",
   places: CELLPHONE_PLACES,
   nearestLimit: 25
 };

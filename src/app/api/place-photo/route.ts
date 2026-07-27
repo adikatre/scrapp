@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import {type NextRequest, NextResponse} from "next/server";
 
 const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY ?? "";
 
@@ -16,12 +16,12 @@ const DEFAULT_WIDTH = 128;
  */
 export async function GET(req: NextRequest) {
   if (!PLACES_API_KEY) {
-    return new NextResponse("Places API key not configured", { status: 503 });
+    return new NextResponse("Places API key not configured", {status: 503});
   }
 
   const name = req.nextUrl.searchParams.get("name") ?? "";
   if (!PHOTO_NAME_PATTERN.test(name)) {
-    return new NextResponse("Invalid photo name", { status: 400 });
+    return new NextResponse("Invalid photo name", {status: 400});
   }
 
   const requestedWidth = Number(req.nextUrl.searchParams.get("w"));
@@ -33,16 +33,16 @@ export async function GET(req: NextRequest) {
     const res = await fetch(
       `https://places.googleapis.com/v1/${name}/media?maxWidthPx=${width}&skipHttpRedirect=true&key=${PLACES_API_KEY}`,
       // Photo URIs are stable; let Next cache the lookup server-side.
-      { next: { revalidate: 86400 } }
+      {next: {revalidate: 86400}}
     );
 
     if (!res.ok) {
-      return new NextResponse("Photo not found", { status: 404 });
+      return new NextResponse("Photo not found", {status: 404});
     }
 
-    const data = (await res.json()) as { photoUri?: string };
+    const data = (await res.json()) as {photoUri?: string};
     if (!data.photoUri) {
-      return new NextResponse("Photo not found", { status: 404 });
+      return new NextResponse("Photo not found", {status: 404});
     }
 
     return NextResponse.redirect(data.photoUri, {
@@ -52,6 +52,6 @@ export async function GET(req: NextRequest) {
       }
     });
   } catch {
-    return new NextResponse("Failed to load photo", { status: 502 });
+    return new NextResponse("Failed to load photo", {status: 502});
   }
 }

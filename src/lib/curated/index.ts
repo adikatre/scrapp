@@ -1,12 +1,12 @@
-import { haversineDistance } from "../geo";
-import type { Place } from "../types";
-import { sanDiegoBatteryProgram } from "./sanDiegoBatteries";
+import {haversineDistance} from "../geo";
+import type {Place} from "../types";
+import {sanDiegoBatteryProgram} from "./sanDiegoBatteries";
 import {
   socalCellphoneProgram,
   socalEbikeBatteryProgram,
   socalHouseholdBatteryProgram
 } from "./socalBatteries";
-import type { CuratedMatchInput, CuratedProvider } from "./types";
+import type {CuratedMatchInput, CuratedProvider} from "./types";
 
 /**
  * Registry of curated drop-off programs. To add one, create a provider module
@@ -26,16 +26,15 @@ export const CURATED_PROVIDERS: CuratedProvider[] = [
  * programs (hundreds of sites) from swamping the result list and map.
  */
 function selectPlaces(provider: CuratedProvider, input: CuratedMatchInput): Place[] {
-  const { nearestLimit } = provider;
-  const { lat, lng } = input;
+  const {nearestLimit} = provider;
+  const {lat, lng} = input;
   if (nearestLimit == null || lat == null || lng == null) {
     return provider.places;
   }
   return [...provider.places]
     .sort(
       (a, b) =>
-        haversineDistance(lat, lng, a.lat, a.lng) -
-        haversineDistance(lat, lng, b.lat, b.lng)
+        haversineDistance(lat, lng, a.lat, a.lng) - haversineDistance(lat, lng, b.lat, b.lng)
     )
     .slice(0, nearestLimit);
 }
@@ -61,4 +60,4 @@ export function getCuratedPlaces(input: CuratedMatchInput): Place[] {
   return places;
 }
 
-export type { CuratedMatchInput, CuratedProvider } from "./types";
+export type {CuratedMatchInput, CuratedProvider} from "./types";

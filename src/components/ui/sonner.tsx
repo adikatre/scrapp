@@ -1,13 +1,13 @@
 "use client";
 
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useTheme } from "next-themes";
-import { Toaster as Sonner, ToasterProps } from "sonner";
+import {useTheme} from "next-themes";
+import {Toaster as Sonner, type ToasterProps} from "sonner";
+import {useIsMobile} from "@/hooks/use-mobile";
 
-const Toaster = ({ ...props }: ToasterProps) => {
+const Toaster = ({...props}: ToasterProps) => {
   const isMobile = useIsMobile();
 
-  const { theme = "system" } = useTheme();
+  const {theme = "system"} = useTheme();
 
   return (
     <Sonner
@@ -26,4 +26,4 @@ const Toaster = ({ ...props }: ToasterProps) => {
   );
 };
 
-export { Toaster };
+export {Toaster};

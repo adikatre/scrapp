@@ -1,12 +1,7 @@
-import type { SavedLocationPrefs } from "./types";
+import type {SavedLocationPrefs} from "./types";
 
 /** Haversine distance in miles between two lat/lng points */
-export function haversineDistance(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
+export function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 3958.8;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);

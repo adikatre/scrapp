@@ -3,20 +3,17 @@
  * Uses Upstash Redis in production, falls back to in-memory for development
  */
 
-import { Ratelimit } from '@upstash/ratelimit';
-import { Redis } from '@upstash/redis';
+import {Ratelimit} from "@upstash/ratelimit";
+import {Redis} from "@upstash/redis";
 
 // Check if Upstash credentials are available
-const hasUpstash = !!(
-  process.env.UPSTASH_REDIS_REST_URL &&
-  process.env.UPSTASH_REDIS_REST_TOKEN
-);
+const hasUpstash = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 
 // Create Redis client only if credentials exist
 const redis = hasUpstash
   ? new Redis({
       url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!
     })
   : null;
 
@@ -25,9 +22,9 @@ const redis = hasUpstash
 export const scanRateLimit = redis
   ? new Ratelimit({
       redis,
-      limiter: Ratelimit.slidingWindow(10, '1 m'),
+      limiter: Ratelimit.slidingWindow(10, "1 m"),
       analytics: true,
-      prefix: 'scrapp:scan',
+      prefix: "scrapp:scan"
     })
   : null;
 
@@ -35,9 +32,9 @@ export const scanRateLimit = redis
 export const placesRateLimit = redis
   ? new Ratelimit({
       redis,
-      limiter: Ratelimit.slidingWindow(30, '1 m'),
+      limiter: Ratelimit.slidingWindow(30, "1 m"),
       analytics: true,
-      prefix: 'scrapp:places',
+      prefix: "scrapp:places"
     })
   : null;
 
@@ -45,9 +42,9 @@ export const placesRateLimit = redis
 export const photoRateLimit = redis
   ? new Ratelimit({
       redis,
-      limiter: Ratelimit.slidingWindow(30, '1 m'),
+      limiter: Ratelimit.slidingWindow(30, "1 m"),
       analytics: true,
-      prefix: 'scrapp:photo',
+      prefix: "scrapp:photo"
     })
   : null;
 
@@ -56,18 +53,15 @@ export const photoRateLimit = redis
  * Note: This doesn't work across multiple instances
  */
 export class InMemoryRateLimiter {
-  private store = new Map<string, { count: number; resetTime: number }>();
+  private store = new Map<string, {count: number; resetTime: number}>();
   private maxRequests: number;
   private windowMs: number;
-  
-  constructor(
-    maxRequests: number,
-    windowMs: number
-  ) {
+
+  constructor(maxRequests: number, windowMs: number) {
     this.maxRequests = maxRequests;
     this.windowMs = windowMs;
     // Cleanup interval
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       // Only run cleanup on server
       setInterval(() => {
         const now = Date.now();
@@ -79,7 +73,7 @@ export class InMemoryRateLimiter {
       }, 60000);
     }
   }
-  
+
   async limit(key: string): Promise<{
     success: boolean;
     limit: number;
@@ -88,32 +82,32 @@ export class InMemoryRateLimiter {
   }> {
     const now = Date.now();
     const record = this.store.get(key);
-    
+
     if (!record || now > record.resetTime) {
-      this.store.set(key, { count: 1, resetTime: now + this.windowMs });
+      this.store.set(key, {count: 1, resetTime: now + this.windowMs});
       return {
         success: true,
         limit: this.maxRequests,
         remaining: this.maxRequests - 1,
-        reset: now + this.windowMs,
+        reset: now + this.windowMs
       };
     }
-    
+
     if (record.count >= this.maxRequests) {
       return {
         success: false,
         limit: this.maxRequests,
         remaining: 0,
-        reset: record.resetTime,
+        reset: record.resetTime
       };
     }
-    
+
     record.count++;
     return {
       success: true,
       limit: this.maxRequests,
       remaining: this.maxRequests - record.count,
-      reset: record.resetTime,
+      reset: record.resetTime
     };
   }
 }
@@ -126,10 +120,7 @@ const photoRateLimitMemory = new InMemoryRateLimiter(30, 60000);
 /**
  * Get the appropriate rate limiter (Upstash or in-memory)
  */
-function getLimiter(
-  upstashLimiter: Ratelimit | null,
-  memoryLimiter: InMemoryRateLimiter
-) {
+function getLimiter(upstashLimiter: Ratelimit | null, memoryLimiter: InMemoryRateLimiter) {
   return upstashLimiter ?? memoryLimiter;
 }
 
@@ -166,11 +157,11 @@ export async function checkPhotoRateLimit(identifier: string) {
  */
 export function getClientIdentifier(request: Request): string {
   // Try to get real IP from headers (Vercel, Cloudflare, etc.)
-  const forwarded = request.headers.get('x-forwarded-for');
-  const realIp = request.headers.get('x-real-ip');
-  const cfConnectingIp = request.headers.get('cf-connecting-ip');
-  
-  const ip = cfConnectingIp ?? realIp ?? forwarded?.split(',')[0]?.trim() ?? 'unknown';
+  const forwarded = request.headers.get("x-forwarded-for");
+  const realIp = request.headers.get("x-real-ip");
+  const cfConnectingIp = request.headers.get("cf-connecting-ip");
+
+  const ip = cfConnectingIp ?? realIp ?? forwarded?.split(",")[0]?.trim() ?? "unknown";
   return ip;
 }
 
@@ -185,22 +176,20 @@ export function validateImageFile(file: File): string | null {
   if (file.size > MAX_SIZE) {
     return `File too large: ${(file.size / 1024 / 1024).toFixed(1)} MB (max 5 MB)`;
   }
-  
+
   // Check MIME type
-  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+  const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
   if (!ALLOWED_TYPES.includes(file.type)) {
     return `Invalid file type: ${file.type}. Allowed: JPEG, PNG, WebP`;
   }
-  
+
   // Check file extension (basic check)
-  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
-  const hasValidExtension = allowedExtensions.some(ext => 
-    file.name.toLowerCase().endsWith(ext)
-  );
-  if (!hasValidExtension && file.name !== 'blob') {
+  const allowedExtensions = [".jpg", ".jpeg", ".png", ".webp"];
+  const hasValidExtension = allowedExtensions.some((ext) => file.name.toLowerCase().endsWith(ext));
+  if (!hasValidExtension && file.name !== "blob") {
     // blob is often used for camera captures
     return `Invalid file extension. Allowed: .jpg, .jpeg, .png, .webp`;
   }
-  
+
   return null;
 }

@@ -1,33 +1,41 @@
 "use client";
 
-import React, {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import {APIProvider} from "@vis.gl/react-google-maps";
+import {
+  AlertCircle,
+  Camera,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Compass,
+  Globe,
+  MapPin,
+  Navigation,
+  Phone
+} from "lucide-react";
 import Link from "next/link";
-import { APIProvider } from "@vis.gl/react-google-maps";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
+import {useRouter, useSearchParams} from "next/navigation";
+import React, {Suspense, useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {LocationSearchInput, type LocationSelection} from "@/components/LocationSearchInput";
+import {LocationsMap} from "@/components/LocationsMap";
+import {Badge} from "@/components/ui/badge";
+import {Button} from "@/components/ui/button";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { LocationsMap } from "@/components/LocationsMap";
+import {Input} from "@/components/ui/input";
+import {Skeleton} from "@/components/ui/skeleton";
 import {
-  LocationSearchInput,
-  type LocationSelection
-} from "@/components/LocationSearchInput";
-import { getPlaceDetails, searchPlaces } from "@/lib/googlePlaces";
+  formatDistance,
+  haversineDistance,
+  readSavedLocationPrefs,
+  saveLocationPrefs
+} from "@/lib/geo";
+import {getPlaceDetails, searchPlaces} from "@/lib/googlePlaces";
 import {
   getCategoryByKey,
   getCurbsideBinInfo,
@@ -36,58 +44,31 @@ import {
   LOCATION_CATEGORIES,
   type LocationCategoryKey
 } from "@/lib/locationCategories";
-import {
-  formatDistance,
-  haversineDistance,
-  readSavedLocationPrefs,
-  saveLocationPrefs
-} from "@/lib/geo";
-import { Place, PlaceDetails } from "@/lib/types";
-import {
-  MapPin,
-  Compass,
-  Phone,
-  Globe,
-  Navigation,
-  ChevronDown,
-  ChevronUp,
-  AlertCircle,
-  Camera,
-  Clock
-} from "lucide-react";
+import type {Place, PlaceDetails} from "@/lib/types";
 
 function LocationsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialCategory =
-    (searchParams.get("category") as LocationCategoryKey) || "recycle";
+  const initialCategory = (searchParams.get("category") as LocationCategoryKey) || "recycle";
   const scannedItem = searchParams.get("item");
-  const scannedQueries = useMemo(
-    () => searchParams.getAll("q"),
-    [searchParams]
-  );
+  const scannedQueries = useMemo(() => searchParams.getAll("q"), [searchParams]);
   // Curbside bin the scan landed in (blue/green/gray), if any. Surfaces the
   // "toss it at the curb" note. Special Drop-off and non-bins yield undefined.
   const curbsideBin = getCurbsideBinInfo(searchParams.get("bin"));
 
   const savedOnMount = useMemo(() => readSavedLocationPrefs(), []);
 
-  const [activeCategory, setActiveCategory] = useState<LocationCategoryKey>(
-    () =>
-      !searchParams.get("category") && savedOnMount?.category
-        ? (savedOnMount.category as LocationCategoryKey)
-        : initialCategory
+  const [activeCategory, setActiveCategory] = useState<LocationCategoryKey>(() =>
+    !searchParams.get("category") && savedOnMount?.category
+      ? (savedOnMount.category as LocationCategoryKey)
+      : initialCategory
   );
-  const [locationLabel, setLocationLabel] = useState(
-    () => savedOnMount?.label ?? "San Diego, CA"
-  );
+  const [locationLabel, setLocationLabel] = useState(() => savedOnMount?.label ?? "San Diego, CA");
   const [userCoords, setUserCoords] = useState<{
     lat: number;
     lng: number;
   } | null>(() =>
-    savedOnMount?.lat && savedOnMount?.lng
-      ? { lat: savedOnMount.lat, lng: savedOnMount.lng }
-      : null
+    savedOnMount?.lat && savedOnMount?.lng ? {lat: savedOnMount.lat, lng: savedOnMount.lng} : null
   );
   const [places, setPlaces] = useState<Place[]>([]);
   const [listFilter, setListFilter] = useState("");
@@ -98,12 +79,8 @@ function LocationsPageContent() {
   const [geoError, setGeoError] = useState<string | null>(null);
   const [locationReady, setLocationReady] = useState(false);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
-  const [expandedDetails, setExpandedDetails] = useState<
-    Record<string, PlaceDetails>
-  >({});
-  const [loadingDetails, setLoadingDetails] = useState<Record<string, boolean>>(
-    {}
-  );
+  const [expandedDetails, setExpandedDetails] = useState<Record<string, PlaceDetails>>({});
+  const [loadingDetails, setLoadingDetails] = useState<Record<string, boolean>>({});
   const [isLocating, setIsLocating] = useState(false);
 
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -116,12 +93,11 @@ function LocationsPageContent() {
   const isSearchable = category?.searchable ?? true;
   // Only show the curbside note while viewing the bin's own category; switching
   // to another tab (e.g. a manual drop-off search) hides it.
-  const showCurbsideNote =
-    !!curbsideBin && activeCategory === curbsideBin.categoryKey;
+  const showCurbsideNote = !!curbsideBin && activeCategory === curbsideBin.categoryKey;
   const CurbsideIcon = category?.icon;
 
   const runSearch = useCallback(
-    async (opts?: { lat?: number; lng?: number; label?: string }) => {
+    async (opts?: {lat?: number; lng?: number; label?: string}) => {
       if (!isSearchable) {
         searchSeqRef.current++;
         setPlaces([]);
@@ -146,7 +122,7 @@ function LocationsPageContent() {
           ? scannedQueries
           : undefined;
 
-      const { places: results, error: searchError } = await searchPlaces({
+      const {places: results, error: searchError} = await searchPlaces({
         categoryKey: activeCategory,
         locationLabel: label,
         lat,
@@ -267,10 +243,7 @@ function LocationsPageContent() {
 
   // Sub-category picks route through the same URL params the scanner uses
   // (?item drives the item-specific Places query), keeping one search path.
-  const handleSelectSubcategory = (
-    key: LocationCategoryKey,
-    item: string
-  ) => {
+  const handleSelectSubcategory = (key: LocationCategoryKey, item: string) => {
     router.push(`/locations?category=${key}&item=${encodeURIComponent(item)}`);
   };
 
@@ -278,9 +251,7 @@ function LocationsPageContent() {
     const q = listFilter.trim().toLowerCase();
     if (!q) return places;
     return places.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.address.toLowerCase().includes(q)
+      (p) => p.name.toLowerCase().includes(q) || p.address.toLowerCase().includes(q)
     );
   }, [places, listFilter]);
 
@@ -298,17 +269,15 @@ function LocationsPageContent() {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         setIsLocating(false);
-        setUserCoords({ lat, lng });
+        setUserCoords({lat, lng});
         setLocationLabel("Your location");
-        runSearch({ lat, lng, label: "Your location" });
+        runSearch({lat, lng, label: "Your location"});
       },
       () => {
         setIsLocating(false);
-        setGeoError(
-          "We could not get your location. Type a city or zip code instead."
-        );
+        setGeoError("We could not get your location. Type a city or zip code instead.");
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+      {enableHighAccuracy: true, timeout: 10000, maximumAge: 300000}
     );
   };
 
@@ -316,7 +285,7 @@ function LocationsPageContent() {
   // sorting works the same as it does for device geolocation.
   const handleLocationSelect = (selection: LocationSelection) => {
     setGeoError(null);
-    setUserCoords({ lat: selection.lat, lng: selection.lng });
+    setUserCoords({lat: selection.lat, lng: selection.lng});
     setLocationLabel(selection.label);
     runSearch({
       lat: selection.lat,
@@ -334,7 +303,7 @@ function LocationsPageContent() {
     if (typeof google !== "undefined" && google.maps?.Geocoder) {
       try {
         const geocoder = new google.maps.Geocoder();
-        const { results } = await geocoder.geocode({
+        const {results} = await geocoder.geocode({
           address: label,
           region: "us"
         });
@@ -343,9 +312,9 @@ function LocationsPageContent() {
           const lat = location.lat();
           const lng = location.lng();
           const resolvedLabel = results[0].formatted_address ?? label;
-          setUserCoords({ lat, lng });
+          setUserCoords({lat, lng});
           setLocationLabel(resolvedLabel);
-          runSearch({ lat, lng, label: resolvedLabel });
+          runSearch({lat, lng, label: resolvedLabel});
           return;
         }
       } catch {
@@ -354,7 +323,7 @@ function LocationsPageContent() {
     }
 
     setUserCoords(null);
-    runSearch({ label });
+    runSearch({label});
   };
 
   const handleSelectPlace = (placeId: string) => {
@@ -368,7 +337,7 @@ function LocationsPageContent() {
   const handleExpandPlace = async (place: Place) => {
     if (expandedDetails[place.id]) {
       setExpandedDetails((prev) => {
-        const next = { ...prev };
+        const next = {...prev};
         delete next[place.id];
         return next;
       });
@@ -379,19 +348,19 @@ function LocationsPageContent() {
     if (place.curated) {
       setExpandedDetails((prev) => ({
         ...prev,
-        [place.id]: { ...place, phone: place.phone }
+        [place.id]: {...place, phone: place.phone}
       }));
       return;
     }
 
-    setLoadingDetails((prev) => ({ ...prev, [place.id]: true }));
-    const { details, error: detailsError } = await getPlaceDetails(place.id);
-    setLoadingDetails((prev) => ({ ...prev, [place.id]: false }));
+    setLoadingDetails((prev) => ({...prev, [place.id]: true}));
+    const {details, error: detailsError} = await getPlaceDetails(place.id);
+    setLoadingDetails((prev) => ({...prev, [place.id]: false}));
 
     if (details) {
       setExpandedDetails((prev) => ({
         ...prev,
-        [place.id]: { ...details, distanceMiles: place.distanceMiles }
+        [place.id]: {...details, distanceMiles: place.distanceMiles}
       }));
     } else if (detailsError) {
       setError(detailsError);
@@ -419,8 +388,7 @@ function LocationsPageContent() {
           </CardTitle>
           {scannedItem && category && (
             <p className="text-sm text-muted-foreground mt-1">
-              {(activeCategory === initialCategory &&
-                scannedQueries.length > 0) ||
+              {(activeCategory === initialCategory && scannedQueries.length > 0) ||
               itemAffectsSearch(activeCategory, scannedItem)
                 ? "Showing drop-off locations that accept your "
                 : `Showing ${category.label} drop-offs for your `}
@@ -452,7 +420,7 @@ function LocationsPageContent() {
           )}
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 shrink-0">
-            {LOCATION_CATEGORIES.map(({ key, label, icon: Icon }) => {
+            {LOCATION_CATEGORIES.map(({key, label, icon: Icon}) => {
               const subcategories = getItemSubcategories(key);
               return (
                 <div key={key} className="flex">
@@ -462,8 +430,7 @@ function LocationsPageContent() {
                     className={`flex-1 min-w-0 items-center gap-1.5 text-xs px-2 ${
                       subcategories.length > 0 ? "rounded-r-none" : ""
                     }`}
-                    size="sm"
-                  >
+                    size="sm">
                     <Icon className="h-3.5 w-3.5 shrink-0" />
                     {label}
                   </Button>
@@ -474,8 +441,7 @@ function LocationsPageContent() {
                           variant="outline"
                           size="sm"
                           className="rounded-l-none border-l-0 px-1.5"
-                          aria-label={`${label} sub-categories`}
-                        >
+                          aria-label={`${label} sub-categories`}>
                           <ChevronDown className="h-3.5 w-3.5" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -483,10 +449,7 @@ function LocationsPageContent() {
                         {subcategories.map((sub) => (
                           <DropdownMenuItem
                             key={sub.item}
-                            onSelect={() =>
-                              handleSelectSubcategory(key, sub.item)
-                            }
-                          >
+                            onSelect={() => handleSelectSubcategory(key, sub.item)}>
                             {sub.label}
                           </DropdownMenuItem>
                         ))}
@@ -501,9 +464,7 @@ function LocationsPageContent() {
           {showCurbsideNote && curbsideBin && (
             <Card className={`p-4 shrink-0 border ${curbsideBin.accent}`}>
               <p className="text-sm text-foreground flex items-start gap-2">
-                {CurbsideIcon && (
-                  <CurbsideIcon className="h-4 w-4 mt-0.5 shrink-0" />
-                )}
+                {CurbsideIcon && <CurbsideIcon className="h-4 w-4 mt-0.5 shrink-0" />}
                 {curbsideBin.note}
               </p>
               {!isSearchable && (
@@ -519,9 +480,7 @@ function LocationsPageContent() {
 
           {!isSearchable && category?.infoMessage && !showCurbsideNote && (
             <Card className="p-4 bg-muted/50 shrink-0">
-              <p className="text-sm text-muted-foreground">
-                {category.infoMessage}
-              </p>
+              <p className="text-sm text-muted-foreground">{category.infoMessage}</p>
               <Button asChild variant="link" className="px-0 mt-2">
                 <Link href="/cam">
                   <Camera className="h-4 w-4 mr-1 inline" />
@@ -546,7 +505,7 @@ function LocationsPageContent() {
                     <p className="text-sm text-muted-foreground animate-pulse">
                       Finding drop-off places near you...
                     </p>
-                    {Array.from({ length: 4 }).map((_, i) => (
+                    {Array.from({length: 4}).map((_, i) => (
                       <Card key={i} className="p-4 bg-muted/50">
                         <div className="flex items-start gap-3">
                           <Skeleton className="h-14 w-14 shrink-0 rounded-md" />
@@ -576,7 +535,8 @@ function LocationsPageContent() {
                 {!isLoading && !error && filteredPlaces.length === 0 && (
                   <Card className="p-4 bg-muted/50">
                     <p className="text-sm text-muted-foreground">
-                      We did not find any places here. Try a different city widen your search, or switch categories.
+                      We did not find any places here. Try a different city widen your search, or
+                      switch categories.
                     </p>
                   </Card>
                 )}
@@ -596,8 +556,7 @@ function LocationsPageContent() {
                         className={`p-4 bg-muted/50 hover:bg-muted/80 transition-colors cursor-pointer ${
                           isSelected ? "ring-2 ring-primary" : ""
                         }`}
-                        onClick={() => setSelectedPlaceId(place.id)}
-                      >
+                        onClick={() => setSelectedPlaceId(place.id)}>
                         <div className="flex items-start gap-3">
                           {/* Fixed-size thumbnail with lazy loading: on slow
                               connections the card renders immediately and the
@@ -616,9 +575,7 @@ function LocationsPageContent() {
                           )}
                           <div className="min-w-0 flex-1">
                             <div className="flex items-start justify-between gap-2">
-                              <h3 className="font-semibold text-foreground">
-                                {place.name}
-                              </h3>
+                              <h3 className="font-semibold text-foreground">{place.name}</h3>
                               {place.distanceMiles != null && (
                                 <Badge variant="secondary" className="shrink-0">
                                   {formatDistance(place.distanceMiles)}
@@ -645,13 +602,11 @@ function LocationsPageContent() {
                             size="sm"
                             variant="outline"
                             asChild
-                            onClick={(e) => e.stopPropagation()}
-                          >
+                            onClick={(e) => e.stopPropagation()}>
                             <a
                               href={directionsUrl(place)}
                               target="_blank"
-                              rel="noreferrer noopener"
-                            >
+                              rel="noreferrer noopener">
                               <Navigation className="h-3.5 w-3.5 mr-1" />
                               Directions
                             </a>
@@ -663,8 +618,7 @@ function LocationsPageContent() {
                               e.stopPropagation();
                               handleExpandPlace(place);
                             }}
-                            disabled={loadingDetails[place.id]}
-                          >
+                            disabled={loadingDetails[place.id]}>
                             {loadingDetails[place.id] ? (
                               "Loading..."
                             ) : isExpanded ? (
@@ -687,23 +641,16 @@ function LocationsPageContent() {
                               <p className="flex items-center gap-2">
                                 <Clock className="h-4 w-4" />
                                 {details.openNow ? (
-                                  <span className="text-green-500">
-                                    Open now
-                                  </span>
+                                  <span className="text-green-500">Open now</span>
                                 ) : (
-                                  <span className="text-muted-foreground">
-                                    Closed now
-                                  </span>
+                                  <span className="text-muted-foreground">Closed now</span>
                                 )}
                               </p>
                             )}
                             {details.phone && (
                               <p className="flex items-center gap-2">
                                 <Phone className="h-4 w-4" />
-                                <a
-                                  href={`tel:${details.phone}`}
-                                  className="text-primary underline"
-                                >
+                                <a href={`tel:${details.phone}`} className="text-primary underline">
                                   {details.phone}
                                 </a>
                               </p>
@@ -715,8 +662,7 @@ function LocationsPageContent() {
                                   href={details.website}
                                   target="_blank"
                                   rel="noreferrer noopener"
-                                  className="text-primary underline truncate"
-                                >
+                                  className="text-primary underline truncate">
                                   Website
                                 </a>
                               </p>
@@ -743,8 +689,8 @@ function LocationsPageContent() {
       <div className="order-first lg:order-last h-[45vh] min-h-[280px] shrink-0 lg:h-auto lg:min-h-0 lg:shrink lg:flex-grow rounded-lg overflow-hidden relative shadow-lg">
         {!mapsApiKey ? (
           <div className="flex h-full min-h-[300px] items-center justify-center rounded-lg bg-muted/30 p-6 text-center text-sm text-muted-foreground">
-            Add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to .env.local to enable the
-            interactive map and location search.
+            Add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to .env.local to enable the interactive map and
+            location search.
           </div>
         ) : isSearchable ? (
           <LocationsMap
@@ -758,12 +704,9 @@ function LocationsPageContent() {
           <div className="flex h-full items-center justify-center bg-muted/20 p-8 text-center">
             <div>
               <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">
-                No map needed for this disposal type.
-              </p>
+              <p className="text-muted-foreground">No map needed for this disposal type.</p>
               <p className="text-sm text-muted-foreground mt-2">
-                Try a searchable category like Recycling, E-Waste, or Hazardous
-                Waste.
+                Try a searchable category like Recycling, E-Waste, or Hazardous Waste.
               </p>
             </div>
           </div>
@@ -788,8 +731,7 @@ export default function LocationsPage() {
         <div className="dark min-h-screen bg-background p-6">
           <Skeleton className="h-[80vh] w-full" />
         </div>
-      }
-    >
+      }>
       <LocationsPageContent />
     </Suspense>
   );

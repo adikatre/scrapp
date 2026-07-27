@@ -1,22 +1,12 @@
 "use client";
 
+import {MapPin, RotateCcw, Sparkles} from "lucide-react";
 import Link from "next/link";
-import { MapPin, RotateCcw, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card";
-import {
-  buildLocationsHref,
-  getCategoryByKey,
-  resolveCategoryKey
-} from "@/lib/locationCategories";
-import { ScanTicket } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import {Button} from "@/components/ui/button";
+import {Card, CardContent, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
+import {buildLocationsHref, getCategoryByKey, resolveCategoryKey} from "@/lib/locationCategories";
+import type {ScanTicket} from "@/lib/types";
+import {cn} from "@/lib/utils";
 
 // Mirrors the accent palette already used for waste categories on the
 // homepage's "Lesser Known Recyclables" cards, mapped onto our category keys.
@@ -45,7 +35,7 @@ const BIN_ACCENTS: Record<string, string> = {
   "Special Drop-off": "bg-amber-500/15 text-amber-400 ring-amber-500/30"
 };
 
-function BinChip({ bin }: { bin?: string }) {
+function BinChip({bin}: {bin?: string}) {
   if (!bin) return null;
   const accent = BIN_ACCENTS[bin];
   if (!accent) return null;
@@ -103,9 +93,7 @@ export function DisposalTicket({
           />
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">
-            {ticket.itemName || "Unidentified item"}
-          </p>
+          <p className="truncate text-sm font-medium">{ticket.itemName || "Unidentified item"}</p>
           <p className="text-xs text-muted-foreground">
             {ticket.timestamp.toLocaleTimeString([], {
               hour: "2-digit",
@@ -129,9 +117,7 @@ export function DisposalTicket({
     <Card className={cn("flex flex-1 flex-col border-muted/40 shadow-lg", className)}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
-          <CardTitle className="text-lg leading-snug">
-            {ticket.itemName || "Scan result"}
-          </CardTitle>
+          <CardTitle className="text-lg leading-snug">{ticket.itemName || "Scan result"}</CardTitle>
           <span
             className={cn(
               "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ring-1 ring-inset",
@@ -156,13 +142,9 @@ export function DisposalTicket({
           />
         )}
         {ticket.note && (
-          <p className="text-sm italic text-muted-foreground">
-            &ldquo;{ticket.note}&rdquo;
-          </p>
+          <p className="text-sm italic text-muted-foreground">&ldquo;{ticket.note}&rdquo;</p>
         )}
-        <p className="whitespace-pre-wrap text-sm leading-relaxed">
-          {ticket.guidance}
-        </p>
+        <p className="whitespace-pre-wrap text-sm leading-relaxed">{ticket.guidance}</p>
       </CardContent>
       <CardFooter className="flex flex-wrap gap-2">
         <Button asChild className="flex-1">

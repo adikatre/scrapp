@@ -1,16 +1,17 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import {Loader2, LocateFixed, MapPin, Search, X} from "lucide-react";
+import type React from "react";
+import {useEffect, useRef, useState} from "react";
+import {Button} from "@/components/ui/button";
+import {Card} from "@/components/ui/card";
+import {Input} from "@/components/ui/input";
 import {
   autocompleteLocations,
-  resolveLocationPlace,
-  type LocationPrediction
+  type LocationPrediction,
+  resolveLocationPlace
 } from "@/lib/googlePlaces";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { LocateFixed, Loader2, MapPin, Search, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {cn} from "@/lib/utils";
 
 const SUGGESTION_DEBOUNCE_MS = 300;
 
@@ -28,7 +29,7 @@ type LocationSearchInputProps = {
   onManualSubmit: (value: string) => void;
   onUseMyLocation: () => void;
   /** Known coordinates used to bias suggestions toward nearby cities */
-  bias?: { lat: number; lng: number } | null;
+  bias?: {lat: number; lng: number} | null;
   isLocating?: boolean;
   disabled?: boolean;
 };
@@ -105,7 +106,7 @@ export function LocationSearchInput({
     const seq = ++fetchSeqRef.current;
     setIsFetching(true);
 
-    const { predictions: results, error } = await autocompleteLocations({
+    const {predictions: results, error} = await autocompleteLocations({
       query: input,
       sessionToken: sessionTokenRef.current,
       lat: bias?.lat,
@@ -126,10 +127,7 @@ export function LocationSearchInput({
     onChange(next);
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(
-      () => fetchSuggestions(next),
-      SUGGESTION_DEBOUNCE_MS
-    );
+    debounceRef.current = setTimeout(() => fetchSuggestions(next), SUGGESTION_DEBOUNCE_MS);
   };
 
   const resolvePrediction = async (prediction: LocationPrediction) => {
@@ -183,10 +181,7 @@ export function LocationSearchInput({
       e.preventDefault();
       // Default to the top suggestion so "palm springs" + Enter selects the
       // real city instead of falling back to a fuzzy plain-text search.
-      const pick =
-        isOpen && predictions.length > 0
-          ? predictions[Math.max(activeIndex, 0)]
-          : null;
+      const pick = isOpen && predictions.length > 0 ? predictions[Math.max(activeIndex, 0)] : null;
       if (pick) {
         resolvePrediction(pick);
       } else {
@@ -208,8 +203,7 @@ export function LocationSearchInput({
     inputRef.current?.focus();
   };
 
-  const showDropdown =
-    isOpen && (predictions.length > 0 || noMatches || fetchError);
+  const showDropdown = isOpen && (predictions.length > 0 || noMatches || fetchError);
 
   return (
     <div ref={containerRef} className="relative w-full">
@@ -230,7 +224,7 @@ export function LocationSearchInput({
           onFocus={() => predictions.length > 0 && setIsOpen(true)}
           // Inline paddings so the pin and the clear/locate buttons never
           // collide with text even if Tailwind `px-3` wins the cascade.
-          style={{ paddingLeft: "2.25rem", paddingRight: "5rem" }}
+          style={{paddingLeft: "2.25rem", paddingRight: "5rem"}}
         />
         <div className="absolute inset-y-0 right-1 flex items-center gap-0.5">
           {isResolving || isFetching ? (
@@ -243,8 +237,7 @@ export function LocationSearchInput({
                 size="icon"
                 className="size-7"
                 aria-label="Clear location"
-                onClick={handleClear}
-              >
+                onClick={handleClear}>
                 <X className="h-3.5 w-3.5" />
               </Button>
             )
@@ -256,8 +249,7 @@ export function LocationSearchInput({
             className="size-7"
             aria-label="Use my location"
             disabled={isLocating || isResolving}
-            onClick={onUseMyLocation}
-          >
+            onClick={onUseMyLocation}>
             {isLocating ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
@@ -269,9 +261,7 @@ export function LocationSearchInput({
 
       {showDropdown && (
         <Card className="absolute z-20 mt-1 w-full overflow-hidden p-1 shadow-lg">
-          {fetchError && (
-            <p className="px-2 py-1.5 text-sm text-destructive">{fetchError}</p>
-          )}
+          {fetchError && <p className="px-2 py-1.5 text-sm text-destructive">{fetchError}</p>}
           {noMatches && (
             <p className="px-2 py-1.5 text-sm text-muted-foreground">
               No matching locations — press Enter to search anyway.
@@ -283,21 +273,15 @@ export function LocationSearchInput({
               type="button"
               className={cn(
                 "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm transition-colors",
-                i === activeIndex
-                  ? "bg-accent text-accent-foreground"
-                  : "hover:bg-accent/60"
+                i === activeIndex ? "bg-accent text-accent-foreground" : "hover:bg-accent/60"
               )}
               onMouseEnter={() => setActiveIndex(i)}
-              onClick={() => resolvePrediction(prediction)}
-            >
+              onClick={() => resolvePrediction(prediction)}>
               <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <span className="truncate">
                 <span className="font-medium">{prediction.mainText}</span>
                 {prediction.secondaryText && (
-                  <span className="text-muted-foreground">
-                    {" "}
-                    {prediction.secondaryText}
-                  </span>
+                  <span className="text-muted-foreground"> {prediction.secondaryText}</span>
                 )}
               </span>
             </button>
