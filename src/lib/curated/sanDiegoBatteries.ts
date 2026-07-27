@@ -1,8 +1,8 @@
-import type { LocationCategoryKey } from "../locationCategories";
-import type { Place } from "../types";
-import { isWithinBounds, type GeoBounds } from "./geo";
-import { resolveDropoffKind } from "./items";
-import type { CuratedMatchInput, CuratedProvider } from "./types";
+import type {LocationCategoryKey} from "../locationCategories";
+import type {Place} from "../types";
+import {type GeoBounds, isWithinBounds} from "./geo";
+import {resolveDropoffKind} from "./items";
+import type {CuratedMatchInput, CuratedProvider} from "./types";
 
 /**
  * County of San Diego "Free Battery Collection" program: County Library branches

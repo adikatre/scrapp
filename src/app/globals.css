@@ -123,7 +123,8 @@
 
 /* bobbing down arrow */
 @keyframes bob {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -137,14 +138,14 @@
 
 /* video on homepage */
 .video-container::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   /* Black tint */
-  background-color: rgba(0, 0, 0, 0.4); 
+  background-color: rgba(0, 0, 0, 0.4);
   /* Vignette effect */
   box-shadow: inset 150 150 15rem rgba(0, 0, 0, 0.7);
 }

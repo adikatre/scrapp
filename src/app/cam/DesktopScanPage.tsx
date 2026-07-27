@@ -1,32 +1,24 @@
 "use client";
 
-import { ChangeEvent, KeyboardEvent, useRef, useState } from "react";
+import {Camera as CameraIcon, History, Loader2, RotateCcw, ScanLine, Upload} from "lucide-react";
+import {type ChangeEvent, type KeyboardEvent, useRef, useState} from "react";
 import Webcam from "react-webcam";
-
-import {
-  Camera as CameraIcon,
-  History,
-  Loader2,
-  RotateCcw,
-  ScanLine,
-  Upload
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { ImageDetectionViewer } from "@/components/ImageDetectionViewer";
-import { DisposalTicket } from "@/components/DisposalTicket";
-import { ScanHistory } from "@/components/ScanHistory";
-import { predict } from "@/lib/backend";
-import { BaseStates } from "@/lib/states";
-import { ScanTicket } from "@/lib/types";
-import { dataURLtoFile, summarizePrediction } from "@/lib/utils";
+import {toast} from "sonner";
+import {DisposalTicket} from "@/components/DisposalTicket";
+import {ImageDetectionViewer} from "@/components/ImageDetectionViewer";
+import {ScanHistory} from "@/components/ScanHistory";
+import {Button} from "@/components/ui/button";
+import {Textarea} from "@/components/ui/textarea";
+import {predict} from "@/lib/backend";
 import {
   getDominantBin,
   getDominantItemName,
   getDominantRoute,
   getDominantSearchQueries
 } from "@/lib/locationCategories";
+import {BaseStates} from "@/lib/states";
+import type {ScanTicket} from "@/lib/types";
+import {dataURLtoFile, summarizePrediction} from "@/lib/utils";
 
 interface DesktopScanPageProps {
   activeTicket: ScanTicket | null;
@@ -57,13 +49,9 @@ export default function DesktopScanPage({
   const [isCapturing, setIsCapturing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
-  const [selectedImageForViewer, setSelectedImageForViewer] = useState<
-    string | null
-  >(null);
+  const [selectedImageForViewer, setSelectedImageForViewer] = useState<string | null>(null);
 
-  const handleTextareaKeypress = function (
-    e: KeyboardEvent<HTMLTextAreaElement>
-  ) {
+  const handleTextareaKeypress = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.shiftKey) return;
 
     if (e.key === "Enter") {
@@ -73,7 +61,7 @@ export default function DesktopScanPage({
     }
   };
 
-  const handleCaptureImage = function () {
+  const handleCaptureImage = () => {
     if (cameraRef.current) {
       setIsCapturing(true);
       setTimeout(() => {
@@ -84,11 +72,11 @@ export default function DesktopScanPage({
     }
   };
 
-  const handleRetake = function () {
+  const handleRetake = () => {
     setCapturedImage(null);
   };
 
-  const handleUploadImage = function () {
+  const handleUploadImage = () => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
@@ -106,17 +94,17 @@ export default function DesktopScanPage({
     input.remove();
   };
 
-  const handleModifyNote = function (e: ChangeEvent<HTMLTextAreaElement>) {
+  const handleModifyNote = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setNote(e.target.value);
   };
 
-  const handleOpenActiveTicketViewer = function () {
+  const handleOpenActiveTicketViewer = () => {
     if (!activeTicket?.image) return;
     setSelectedImageForViewer(activeTicket.image);
     setViewerOpen(true);
   };
 
-  const handleScan = async function () {
+  const handleScan = async () => {
     if (!capturedImage) {
       toast.error("Capture or upload a photo first");
       return;

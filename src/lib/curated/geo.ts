@@ -1,5 +1,5 @@
-import { haversineDistance } from "../geo";
-import type { Place } from "../types";
+import {haversineDistance} from "../geo";
+import type {Place} from "../types";
 
 /** A rectangular lat/lng region a curated program can be gated to. */
 export type GeoBounds = {
@@ -10,16 +10,9 @@ export type GeoBounds = {
 };
 
 /** True when the coordinate falls inside the bounding box (inclusive). */
-export function isWithinBounds(
-  lat: number,
-  lng: number,
-  bounds: GeoBounds
-): boolean {
+export function isWithinBounds(lat: number, lng: number, bounds: GeoBounds): boolean {
   return (
-    lat >= bounds.minLat &&
-    lat <= bounds.maxLat &&
-    lng >= bounds.minLng &&
-    lng <= bounds.maxLng
+    lat >= bounds.minLat && lat <= bounds.maxLat && lng >= bounds.minLng && lng <= bounds.maxLng
   );
 }
 
@@ -63,8 +56,7 @@ export function isSamePlace(a: Place, b: Place): boolean {
 
   const nameA = normalizeName(a.name);
   const nameB = normalizeName(b.name);
-  const [shorter, longer] =
-    nameA.length <= nameB.length ? [nameA, nameB] : [nameB, nameA];
+  const [shorter, longer] = nameA.length <= nameB.length ? [nameA, nameB] : [nameB, nameA];
 
   // Guards against a stub name matching everything at the same address.
   if (shorter.length < 4) return false;

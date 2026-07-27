@@ -1,13 +1,5 @@
-import {
-  Battery,
-  Heart,
-  Leaf,
-  Recycle,
-  AlertTriangle,
-  Trash2,
-  type LucideIcon
-} from "lucide-react";
-import { PredictionResult } from "./types";
+import {AlertTriangle, Battery, Heart, Leaf, type LucideIcon, Recycle, Trash2} from "lucide-react";
+import type {PredictionResult} from "./types";
 
 export type LocationCategoryKey =
   | "recycle"
@@ -123,21 +115,15 @@ export const LOCATION_CATEGORIES: LocationCategory[] = [
   }
 ];
 
-export const SEARCHABLE_CATEGORIES = LOCATION_CATEGORIES.filter(
-  (c) => c.searchable
-);
+export const SEARCHABLE_CATEGORIES = LOCATION_CATEGORIES.filter((c) => c.searchable);
 
-export function getCategoryByKey(
-  key: string | null | undefined
-): LocationCategory | undefined {
+export function getCategoryByKey(key: string | null | undefined): LocationCategory | undefined {
   if (!key) return undefined;
   return LOCATION_CATEGORIES.find((c) => c.key === key);
 }
 
 export function routeToCategoryKey(route: string): LocationCategoryKey {
-  const match = LOCATION_CATEGORIES.find((c) =>
-    c.backendRoutes.includes(route)
-  );
+  const match = LOCATION_CATEGORIES.find((c) => c.backendRoutes.includes(route));
   return match?.key ?? "recycle";
 }
 
@@ -179,9 +165,7 @@ const CURBSIDE_BINS: Record<string, CurbsideBinInfo> = {
 };
 
 /** Curbside metadata for a bin, or undefined for Special Drop-off / non-bins. */
-export function getCurbsideBinInfo(
-  bin: string | null | undefined
-): CurbsideBinInfo | undefined {
+export function getCurbsideBinInfo(bin: string | null | undefined): CurbsideBinInfo | undefined {
   if (!bin) return undefined;
   return CURBSIDE_BINS[bin];
 }
@@ -189,16 +173,13 @@ export function getCurbsideBinInfo(
 /** Curbside bins override the route: they are collected at the curb, so the
  * bin decides the destination category (fixes route/bin mismatches, e.g. a pen
  * the model tags "Landfill / Donate" but drops in the gray trash bin). */
-export function resolveCategoryKey(
-  route: string,
-  bin?: string | null
-): LocationCategoryKey {
+export function resolveCategoryKey(route: string, bin?: string | null): LocationCategoryKey {
   return getCurbsideBinInfo(bin)?.categoryKey ?? routeToCategoryKey(route);
 }
 
 const NON_WASTE_ROUTES = ["Living Things", "City Infrastructure"];
 
-function isWasteItem(item: { route: string }): boolean {
+function isWasteItem(item: {route: string}): boolean {
   return !NON_WASTE_ROUTES.includes(item.route);
 }
 
@@ -207,17 +188,13 @@ function pickBestClassifiedItem(
 ): (typeof items)[number] | undefined {
   if (items.length === 0) return undefined;
 
-  const wasteItems = items
-    .filter(isWasteItem)
-    .sort((a, b) => b.confidence - a.confidence);
+  const wasteItems = items.filter(isWasteItem).sort((a, b) => b.confidence - a.confidence);
   if (wasteItems.length > 0) return wasteItems[0];
 
   return [...items].sort((a, b) => b.confidence - a.confidence)[0];
 }
 
-function pickBestRouteFromCounts(
-  binTotals: Record<string, number>
-): string {
+function pickBestRouteFromCounts(binTotals: Record<string, number>): string {
   const wasteEntries = Object.entries(binTotals).filter(
     ([route]) => !NON_WASTE_ROUTES.includes(route)
   );
@@ -239,9 +216,7 @@ function pickBestDetection(
 ): PredictionResult["detections"][number] | undefined {
   if (detections.length === 0) return undefined;
 
-  const wasteDetections = detections.filter((detection) =>
-    isWasteItem(detection)
-  );
+  const wasteDetections = detections.filter((detection) => isWasteItem(detection));
   if (wasteDetections.length > 0) return wasteDetections[0];
 
   return detections[0];
@@ -339,10 +314,11 @@ const ITEM_QUERY_RULES: ItemQueryRule[] = [
  * the same `?item=` param the scanner uses, so search behavior is identical. */
 export function getItemSubcategories(
   categoryKey: LocationCategoryKey
-): { label: string; item: string }[] {
-  return ITEM_QUERY_RULES.filter((r) =>
-    r.categories.includes(categoryKey)
-  ).map((r) => ({ label: r.label, item: r.keywords[0] }));
+): {label: string; item: string}[] {
+  return ITEM_QUERY_RULES.filter((r) => r.categories.includes(categoryKey)).map((r) => ({
+    label: r.label,
+    item: r.keywords[0]
+  }));
 }
 
 /** Item names arrive via a public URL param and feed a Places API query */
@@ -360,9 +336,7 @@ function sanitizeItemName(raw: string | null | undefined): string {
 export const MAX_ITEM_SEARCH_QUERIES = 4;
 
 /** Search queries arrive via public URL params ("q") and feed Places API queries */
-export function sanitizeSearchQueries(
-  raw: string[] | null | undefined
-): string[] {
+export function sanitizeSearchQueries(raw: string[] | null | undefined): string[] {
   if (!raw) return [];
   const queries: string[] = [];
   for (const entry of raw) {
@@ -388,9 +362,7 @@ function resolveItemQueryTemplate(
   if (!safeItem) return undefined;
 
   const rule = ITEM_QUERY_RULES.find(
-    (r) =>
-      r.categories.includes(categoryKey) &&
-      r.keywords.some((kw) => safeItem.includes(kw))
+    (r) => r.categories.includes(categoryKey) && r.keywords.some((kw) => safeItem.includes(kw))
   );
   if (rule) return rule.searchQuery;
 
@@ -420,9 +392,7 @@ export function buildSearchQuery(
     resolveItemQueryTemplate(category.key, item) ??
     category.searchQuery ??
     "recycling center {location}";
-  return template
-    .replace("{location}", locationLabel ? `near ${locationLabel}` : "")
-    .trim();
+  return template.replace("{location}", locationLabel ? `near ${locationLabel}` : "").trim();
 }
 
 export function buildLocationsHref(
@@ -432,7 +402,7 @@ export function buildLocationsHref(
   bin?: string | null
 ): string {
   const category = resolveCategoryKey(route, bin);
-  const params = new URLSearchParams({ category });
+  const params = new URLSearchParams({category});
   if (itemName) params.set("item", itemName);
   // Pass the curbside bin so /locations can surface the "toss it at the curb"
   // note; only curbside bins are recognized, so Special Drop-off is omitted.

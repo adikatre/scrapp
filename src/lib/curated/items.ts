@@ -1,4 +1,4 @@
-import type { CuratedMatchInput } from "./types";
+import type {CuratedMatchInput} from "./types";
 
 /**
  * How a scanned item maps to the kind of battery drop-off it needs.
