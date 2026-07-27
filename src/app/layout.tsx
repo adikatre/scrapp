@@ -5,12 +5,13 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { Toaster } from "@/components/ui/sonner";
 import { PillNav } from "@/components/PillNav";
+import { PostHogProvider } from "@/lib/posthog";
 
 import "./globals.css";
 
 const fontFamily = Geist({
   variable: "--font-geist-sans",
-  subsets: ["latin"]
+  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
@@ -35,14 +36,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="dark">
-        <main className={`w-full ${fontFamily.className} antialiased`}>
-          <Toaster />
-          <PillNav />
-          {children}
-        </main>
-        <Toaster richColors closeButton />
-        <Analytics />
-        <SpeedInsights />
+        <PostHogProvider>
+          <main className={`w-full ${fontFamily.className} antialiased`}>
+            <Toaster />
+            <PillNav />
+            {children}
+          </main>
+          <Toaster richColors closeButton />
+          <Analytics />
+          <SpeedInsights />
+        </PostHogProvider>
       </body>
     </html>
   );
