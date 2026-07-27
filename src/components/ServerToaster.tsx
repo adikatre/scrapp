@@ -1,7 +1,7 @@
 "use client";
 
-import {useEffect} from "react";
-import {toast} from "sonner";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
 type Props = {
   message: string;
@@ -13,13 +13,13 @@ type Props = {
   };
 };
 
-export default function ServerToaster({message, type = "info", duration, action}: Props) {
+export default function ServerToaster({ message, type = "info", duration, action }: Props) {
   useEffect(() => {
     toast[type](message, {
       duration,
       action
     });
-  }, [message, type, duration]);
+  }, [message, type, duration, action]);
 
   return <div className="absolute -top-20 -left-20 w-0 h-0 -z-10"></div>;
 }

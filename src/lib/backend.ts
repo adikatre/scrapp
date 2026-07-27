@@ -1,8 +1,8 @@
 "use server";
 
-import {checkScanRateLimit, validateImageFile} from "./rate-limit";
-import {BaseStates} from "./states";
-import type {PredictionResult} from "./types";
+import { checkScanRateLimit, validateImageFile } from "./rate-limit";
+import { BaseStates } from "./states";
+import type { PredictionResult } from "./types";
 
 const BACKEND_URL = process.env.NEXT_PRIVATE_BACKEND_URL || "";
 const BACKEND_API_KEY = process.env.BACKEND_API_KEY || "";
@@ -33,7 +33,6 @@ export async function predict(formData: FormData): Promise<PredictReturnType> {
   const rateLimitResult = await checkScanRateLimit(clientId);
 
   if (!rateLimitResult.success) {
-    console.warn("[backend.ts] Rate limit exceeded for client:", clientId);
     return [
       BaseStates.ERROR,
       null,
@@ -62,7 +61,6 @@ export async function predict(formData: FormData): Promise<PredictReturnType> {
 
   const validationError = validateImageFile(file);
   if (validationError) {
-    console.warn("[backend.ts] File validation failed:", validationError);
     return [
       BaseStates.ERROR,
       null,
@@ -87,7 +85,6 @@ export async function predict(formData: FormData): Promise<PredictReturnType> {
     });
 
     if (!res.ok) {
-      console.warn(`[backend.ts] predict failed with status ${res.status}`);
       return [
         BaseStates.ERROR,
         null,
@@ -109,8 +106,7 @@ export async function predict(formData: FormData): Promise<PredictReturnType> {
         "X-RateLimit-Reset": Math.ceil(rateLimitResult.reset / 1000).toString()
       }
     ];
-  } catch (e) {
-    console.warn("[backend.ts] predict error:", e);
+  } catch (_e) {
     return [
       BaseStates.ERROR,
       null,

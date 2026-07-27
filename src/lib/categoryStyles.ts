@@ -1,4 +1,4 @@
-import type {LocationCategoryKey} from "./locationCategories";
+import type { LocationCategoryKey } from "./locationCategories";
 
 const CATEGORY_CHIP_STYLES: Record<LocationCategoryKey, string> = {
   recycle: "bg-emerald-500/15 text-emerald-400 ring-emerald-500/30",

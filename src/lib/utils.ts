@@ -1,6 +1,6 @@
-import {type ClassValue, clsx} from "clsx";
-import {twMerge} from "tailwind-merge";
-import type {PredictionResult} from "./types";
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+import type { PredictionResult } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -56,7 +56,7 @@ export function dataURLtoFile(dataUrl: string, filename: string) {
     const len = binary.length;
     const bytes = new Uint8Array(len);
     for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
-    return new File([bytes], filename, {type: mime});
+    return new File([bytes], filename, { type: mime });
   } catch {
     return null;
   }

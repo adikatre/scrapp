@@ -23,6 +23,8 @@ export type Detection = {
   class_name: string;
   confidence: number;
   route: PredictionRoutes;
+  /** Unique identifier for this detection */
+  id?: string;
 };
 
 export type PredictionResult = {

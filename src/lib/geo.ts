@@ -1,4 +1,4 @@
-import type {SavedLocationPrefs} from "./types";
+import type { SavedLocationPrefs } from "./types";
 
 /** Haversine distance in miles between two lat/lng points */
 export function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {

@@ -1,6 +1,6 @@
 "use client";
 
-import {APIProvider} from "@vis.gl/react-google-maps";
+import { APIProvider } from "@vis.gl/react-google-maps";
 import {
   AlertCircle,
   Camera,
@@ -14,28 +14,26 @@ import {
   Phone
 } from "lucide-react";
 import Link from "next/link";
-import {useRouter, useSearchParams} from "next/navigation";
-import React, {Suspense, useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {LocationSearchInput, type LocationSelection} from "@/components/LocationSearchInput";
-import {LocationsMap} from "@/components/LocationsMap";
-import {Badge} from "@/components/ui/badge";
-import {Button} from "@/components/ui/button";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import {Input} from "@/components/ui/input";
-import {Skeleton} from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   formatDistance,
   haversineDistance,
   readSavedLocationPrefs,
   saveLocationPrefs
 } from "@/lib/geo";
-import {getPlaceDetails, searchPlaces} from "@/lib/googlePlaces";
+import { getPlaceDetails, searchPlaces } from "@/lib/googlePlaces";
 import {
   getCategoryByKey,
   getCurbsideBinInfo,
@@ -44,7 +42,9 @@ import {
   LOCATION_CATEGORIES,
   type LocationCategoryKey
 } from "@/lib/locationCategories";
-import type {Place, PlaceDetails} from "@/lib/types";
+import type { Place, PlaceDetails } from "@/lib/types";
+import { LocationMapWidget } from "@/components/widgets/location-map";
+import { LocationSearchWidget, type LocationSelection } from "@/components/widgets/location-search";
 
 function LocationsPageContent() {
   const router = useRouter();
@@ -68,7 +68,7 @@ function LocationsPageContent() {
     lat: number;
     lng: number;
   } | null>(() =>
-    savedOnMount?.lat && savedOnMount?.lng ? {lat: savedOnMount.lat, lng: savedOnMount.lng} : null
+    savedOnMount?.lat && savedOnMount?.lng ? { lat: savedOnMount.lat, lng: savedOnMount.lng } : null
   );
   const [places, setPlaces] = useState<Place[]>([]);
   const [listFilter, setListFilter] = useState("");
@@ -97,7 +97,7 @@ function LocationsPageContent() {
   const CurbsideIcon = category?.icon;
 
   const runSearch = useCallback(
-    async (opts?: {lat?: number; lng?: number; label?: string}) => {
+    async (opts?: { lat?: number; lng?: number; label?: string }) => {
       if (!isSearchable) {
         searchSeqRef.current++;
         setPlaces([]);
@@ -122,7 +122,7 @@ function LocationsPageContent() {
           ? scannedQueries
           : undefined;
 
-      const {places: results, error: searchError} = await searchPlaces({
+      const { places: results, error: searchError } = await searchPlaces({
         categoryKey: activeCategory,
         locationLabel: label,
         lat,
@@ -239,7 +239,7 @@ function LocationsPageContent() {
   useEffect(() => {
     if (!locationReady) return;
     runSearchRef.current();
-  }, [activeCategory, locationReady, scannedItem, scannedQueries]);
+  }, [locationReady]);
 
   // Sub-category picks route through the same URL params the scanner uses
   // (?item drives the item-specific Places query), keeping one search path.
@@ -269,15 +269,15 @@ function LocationsPageContent() {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         setIsLocating(false);
-        setUserCoords({lat, lng});
+        setUserCoords({ lat, lng });
         setLocationLabel("Your location");
-        runSearch({lat, lng, label: "Your location"});
+        runSearch({ lat, lng, label: "Your location" });
       },
       () => {
         setIsLocating(false);
         setGeoError("We could not get your location. Type a city or zip code instead.");
       },
-      {enableHighAccuracy: true, timeout: 10000, maximumAge: 300000}
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
     );
   };
 
@@ -285,7 +285,7 @@ function LocationsPageContent() {
   // sorting works the same as it does for device geolocation.
   const handleLocationSelect = (selection: LocationSelection) => {
     setGeoError(null);
-    setUserCoords({lat: selection.lat, lng: selection.lng});
+    setUserCoords({ lat: selection.lat, lng: selection.lng });
     setLocationLabel(selection.label);
     runSearch({
       lat: selection.lat,
@@ -303,7 +303,7 @@ function LocationsPageContent() {
     if (typeof google !== "undefined" && google.maps?.Geocoder) {
       try {
         const geocoder = new google.maps.Geocoder();
-        const {results} = await geocoder.geocode({
+        const { results } = await geocoder.geocode({
           address: label,
           region: "us"
         });
@@ -312,9 +312,9 @@ function LocationsPageContent() {
           const lat = location.lat();
           const lng = location.lng();
           const resolvedLabel = results[0].formatted_address ?? label;
-          setUserCoords({lat, lng});
+          setUserCoords({ lat, lng });
           setLocationLabel(resolvedLabel);
-          runSearch({lat, lng, label: resolvedLabel});
+          runSearch({ lat, lng, label: resolvedLabel });
           return;
         }
       } catch {
@@ -323,7 +323,7 @@ function LocationsPageContent() {
     }
 
     setUserCoords(null);
-    runSearch({label});
+    runSearch({ label });
   };
 
   const handleSelectPlace = (placeId: string) => {
@@ -337,7 +337,7 @@ function LocationsPageContent() {
   const handleExpandPlace = async (place: Place) => {
     if (expandedDetails[place.id]) {
       setExpandedDetails((prev) => {
-        const next = {...prev};
+        const next = { ...prev };
         delete next[place.id];
         return next;
       });
@@ -348,19 +348,19 @@ function LocationsPageContent() {
     if (place.curated) {
       setExpandedDetails((prev) => ({
         ...prev,
-        [place.id]: {...place, phone: place.phone}
+        [place.id]: { ...place, phone: place.phone }
       }));
       return;
     }
 
-    setLoadingDetails((prev) => ({...prev, [place.id]: true}));
-    const {details, error: detailsError} = await getPlaceDetails(place.id);
-    setLoadingDetails((prev) => ({...prev, [place.id]: false}));
+    setLoadingDetails((prev) => ({ ...prev, [place.id]: true }));
+    const { details, error: detailsError } = await getPlaceDetails(place.id);
+    setLoadingDetails((prev) => ({ ...prev, [place.id]: false }));
 
     if (details) {
       setExpandedDetails((prev) => ({
         ...prev,
-        [place.id]: {...details, distanceMiles: place.distanceMiles}
+        [place.id]: { ...details, distanceMiles: place.distanceMiles }
       }));
     } else if (detailsError) {
       setError(detailsError);
@@ -401,7 +401,7 @@ function LocationsPageContent() {
           <div className="shrink-0">
             {/* Not disabled while results load — typing must stay fluid even
                 mid-search; suggestions are debounced inside the component. */}
-            <LocationSearchInput
+            <LocationSearchWidget
               value={locationLabel}
               onChange={setLocationLabel}
               onSelectSuggestion={handleLocationSelect}
@@ -420,7 +420,7 @@ function LocationsPageContent() {
           )}
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 shrink-0">
-            {LOCATION_CATEGORIES.map(({key, label, icon: Icon}) => {
+            {LOCATION_CATEGORIES.map(({ key, label, icon: Icon }) => {
               const subcategories = getItemSubcategories(key);
               return (
                 <div key={key} className="flex">
@@ -505,7 +505,7 @@ function LocationsPageContent() {
                     <p className="text-sm text-muted-foreground animate-pulse">
                       Finding drop-off places near you...
                     </p>
-                    {Array.from({length: 4}).map((_, i) => (
+                    {Array.from({ length: 4 }).map((_, i) => (
                       <Card key={i} className="p-4 bg-muted/50">
                         <div className="flex items-start gap-3">
                           <Skeleton className="h-14 w-14 shrink-0 rounded-md" />
@@ -693,7 +693,7 @@ function LocationsPageContent() {
             location search.
           </div>
         ) : isSearchable ? (
-          <LocationsMap
+          <LocationMapWidget
             places={filteredPlaces}
             userLat={userCoords?.lat}
             userLng={userCoords?.lng}

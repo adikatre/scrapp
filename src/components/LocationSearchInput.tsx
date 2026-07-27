@@ -1,17 +1,17 @@
 "use client";
 
-import {Loader2, LocateFixed, MapPin, Search, X} from "lucide-react";
+import { Loader2, LocateFixed, MapPin, Search, X } from "lucide-react";
 import type React from "react";
-import {useEffect, useRef, useState} from "react";
-import {Button} from "@/components/ui/button";
-import {Card} from "@/components/ui/card";
-import {Input} from "@/components/ui/input";
+import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   autocompleteLocations,
   type LocationPrediction,
   resolveLocationPlace
 } from "@/lib/googlePlaces";
-import {cn} from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 const SUGGESTION_DEBOUNCE_MS = 300;
 
@@ -29,7 +29,7 @@ type LocationSearchInputProps = {
   onManualSubmit: (value: string) => void;
   onUseMyLocation: () => void;
   /** Known coordinates used to bias suggestions toward nearby cities */
-  bias?: {lat: number; lng: number} | null;
+  bias?: { lat: number; lng: number } | null;
   isLocating?: boolean;
   disabled?: boolean;
 };
@@ -106,7 +106,7 @@ export function LocationSearchInput({
     const seq = ++fetchSeqRef.current;
     setIsFetching(true);
 
-    const {predictions: results, error} = await autocompleteLocations({
+    const { predictions: results, error } = await autocompleteLocations({
       query: input,
       sessionToken: sessionTokenRef.current,
       lat: bias?.lat,
@@ -224,7 +224,7 @@ export function LocationSearchInput({
           onFocus={() => predictions.length > 0 && setIsOpen(true)}
           // Inline paddings so the pin and the clear/locate buttons never
           // collide with text even if Tailwind `px-3` wins the cascade.
-          style={{paddingLeft: "2.25rem", paddingRight: "5rem"}}
+          style={{ paddingLeft: "2.25rem", paddingRight: "5rem" }}
         />
         <div className="absolute inset-y-0 right-1 flex items-center gap-0.5">
           {isResolving || isFetching ? (

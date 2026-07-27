@@ -22,16 +22,25 @@
       "recommended": true,
       "correctness": {
         "noUnusedImports": "error",
-        "noUnusedVariables": "warn"
+        "noUnusedVariables": "error",
+        "noEmptyPattern": "error"
       },
       "style": {
         "useConst": "error",
-        "noNonNullAssertion": "warn"
+        "noNonNullAssertion": "error"
       },
       "suspicious": {
         "noConsole": "warn",
         "noDebugger": "warn",
-        "noExplicitAny": "warn"
+        "noExplicitAny": "warn",
+        "noArrayIndexKey": "off"
+      },
+      "performance": {
+        "noImgElement": "off"
+      },
+      "a11y": {
+        "useKeyWithClickEvents": "warn",
+        "useMediaCaption": "off"
       }
     }
   },
@@ -43,7 +52,7 @@
       "semicolons": "always",
       "arrowParentheses": "always",
       "bracketSameLine": true,
-      "bracketSpacing": false
+      "bracketSpacing": true
     }
   },
   "assist": {
@@ -67,6 +76,29 @@
           }
         }
       }
+    },
+    {
+      "includes": ["**/vitest.setup.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off",
+            "noConsole": "off"
+          }
+        }
+      }
     }
-  ]
+  ],
+  "css": {
+    "formatter": {
+      "enabled": true
+    },
+    "linter": {
+      "enabled": true
+    },
+    "parser": {
+      "cssModules": true,
+      "tailwindDirectives": true
+    }
+  }
 }

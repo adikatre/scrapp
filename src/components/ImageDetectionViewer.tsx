@@ -1,20 +1,20 @@
 "use client";
 
-import {Loader2} from "lucide-react";
-import {useEffect, useMemo, useRef, useState} from "react";
-import {Badge} from "@/components/ui/badge";
-import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
-import {predict} from "@/lib/backend";
-import {BaseStates} from "@/lib/states";
-import type {PredictionResult} from "@/lib/types";
-import {cn, dataURLtoFile} from "@/lib/utils";
+import { Loader2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { predict } from "@/lib/backend";
+import { BaseStates } from "@/lib/states";
+import type { PredictionResult } from "@/lib/types";
+import { cn, dataURLtoFile } from "@/lib/utils";
 
 function useImageNaturalSize(src?: string | null) {
-  const [size, setSize] = useState<{w: number; h: number} | null>(null);
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   useEffect(() => {
     if (!src) return;
     const img = new Image();
-    img.onload = () => setSize({w: img.naturalWidth, h: img.naturalHeight});
+    img.onload = () => setSize({ w: img.naturalWidth, h: img.naturalHeight });
     img.src = src;
   }, [src]);
   return size;
@@ -37,7 +37,7 @@ export function ImageDetectionViewer({
 
   const natural = useImageNaturalSize(imageSrc);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [container, setContainer] = useState<{w: number; h: number}>({
+  const [container, setContainer] = useState<{ w: number; h: number }>({
     w: 0,
     h: 0
   });
@@ -79,7 +79,7 @@ export function ImageDetectionViewer({
     const el = containerRef.current;
     if (!el) return;
 
-    const onResize = () => setContainer({w: el.clientWidth, h: el.clientHeight});
+    const onResize = () => setContainer({ w: el.clientWidth, h: el.clientHeight });
     onResize();
     const ro = new ResizeObserver(onResize);
     ro.observe(el);
@@ -87,7 +87,7 @@ export function ImageDetectionViewer({
   }, [open]);
 
   const scale = useMemo(() => {
-    if (!natural || !container.w || !container.h) return {x: 1, y: 1};
+    if (!natural || !container.w || !container.h) return { x: 1, y: 1 };
     // Image will be contained; compute aspect-fit scale
     const imgAspect = natural.w / natural.h;
     const boxAspect = container.w / container.h;
@@ -95,12 +95,12 @@ export function ImageDetectionViewer({
       // Width fills
       const displayedW = container.w;
       const displayedH = displayedW / imgAspect;
-      return {x: displayedW / natural.w, y: displayedH / natural.h};
+      return { x: displayedW / natural.w, y: displayedH / natural.h };
     } else {
       // Height fills
       const displayedH = container.h;
       const displayedW = displayedH * imgAspect;
-      return {x: displayedW / natural.w, y: displayedH / natural.h};
+      return { x: displayedW / natural.w, y: displayedH / natural.h };
     }
   }, [natural, container]);
 
@@ -131,7 +131,7 @@ export function ImageDetectionViewer({
               />
             )}
             {/* overlays */}
-            {prediction?.detections?.map((d, i) => {
+            {prediction?.detections?.map((d) => {
               const [x1, y1, x2, y2] = d.bbox;
               const left = x1 * scale.x;
               const top = y1 * scale.y;
@@ -139,9 +139,9 @@ export function ImageDetectionViewer({
               const height = (y2 - y1) * scale.y;
               return (
                 <div
-                  key={i}
+                  key={d.id ?? `${d.class_name}-${x1}-${y1}`}
                   className={cn("absolute border-2 rounded-md", "border-emerald-400/90")}
-                  style={{left, top, width, height}}>
+                  style={{ left, top, width, height }}>
                   <div className="absolute -top-6 left-0 bg-emerald-500 text-white text-[10px] px-1.5 py-0.5 rounded">
                     {d.class_name} • {(d.confidence * 100).toFixed(0)}% • {d.route}
                   </div>

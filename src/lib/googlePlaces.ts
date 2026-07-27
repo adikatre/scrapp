@@ -1,14 +1,14 @@
 "use server";
 
-import {getCuratedPlaces} from "./curated";
-import {isSamePlace} from "./curated/geo";
+import { getCuratedPlaces } from "./curated";
+import { isSamePlace } from "./curated/geo";
 import {
   buildSearchQuery,
   getCategoryByKey,
   type LocationCategoryKey,
   sanitizeSearchQueries
 } from "./locationCategories";
-import type {Place, PlaceDetails} from "./types";
+import type { Place, PlaceDetails } from "./types";
 
 const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY ?? "";
 
@@ -17,11 +17,11 @@ const MIN_ITEM_RESULTS = 5;
 
 type GooglePlaceResult = {
   id?: string;
-  displayName?: {text?: string};
+  displayName?: { text?: string };
   formattedAddress?: string;
-  location?: {latitude?: number; longitude?: number};
+  location?: { latitude?: number; longitude?: number };
   googleMapsUri?: string;
-  photos?: {name?: string}[];
+  photos?: { name?: string }[];
 };
 
 type GooglePlaceDetailsResult = GooglePlaceResult & {
@@ -58,7 +58,7 @@ export async function searchPlaces(input: {
   item?: string;
   /** Item-specific Places queries (e.g. from the scan classifier); sanitized here */
   queries?: string[];
-}): Promise<{places: Place[]; error?: string}> {
+}): Promise<{ places: Place[]; error?: string }> {
   // Hand-curated county drop-offs are treated as an extra Places source: they
   // are merged into the returned list so callers render them as ordinary cards.
   const curated = getCuratedPlaces({
@@ -81,7 +81,7 @@ export async function searchPlaces(input: {
 
   const category = getCategoryByKey(input.categoryKey);
   if (!category?.searchable) {
-    return {places: curated, error: undefined};
+    return { places: curated, error: undefined };
   }
 
   const hasCoords = input.lat != null && input.lng != null;
@@ -105,7 +105,7 @@ export async function searchPlaces(input: {
   // Curated ids are not Google place ids, so a store that is both a curated
   // drop-off and a Google result (every Home Depot, say) survives the id check
   // above and would render as a second card and a stacked map pin. Match those
-  // by position and name instead, and keep the curated copy — it is the one that
+  // by position and name instead, and keep the curated copy—it is the one that
   // knows which batteries the store actually takes.
   const isCuratedDuplicate = (place: Place) => curated.some((c) => isSamePlace(c, place));
 
@@ -137,16 +137,16 @@ export async function searchPlaces(input: {
   // Only surface an error when every query failed and nothing else was found.
   const firstError = itemResults.find((r) => r.error)?.error ?? baseResult.error;
   if (merged.length === 0 && firstError) {
-    return {places: [], error: firstError};
+    return { places: [], error: firstError };
   }
-  return {places: merged};
+  return { places: merged };
 }
 
 async function runTextSearch(
   textQuery: string,
   lat?: number,
   lng?: number
-): Promise<{places: Place[]; error?: string}> {
+): Promise<{ places: Place[]; error?: string }> {
   const body: Record<string, unknown> = {
     textQuery,
     pageSize: 20
@@ -155,7 +155,7 @@ async function runTextSearch(
   if (lat != null && lng != null) {
     body.locationBias = {
       circle: {
-        center: {latitude: lat, longitude: lng},
+        center: { latitude: lat, longitude: lng },
         radius: 25000
       }
     };
@@ -178,10 +178,9 @@ async function runTextSearch(
 
     if (!res.ok) {
       const errText = await res.text();
-      console.warn("[googlePlaces] search failed:", res.status, errText);
       try {
         const errJson = JSON.parse(errText) as {
-          error?: {message?: string};
+          error?: { message?: string };
         };
         const googleMsg = errJson.error?.message;
         if (googleMsg) {
@@ -192,10 +191,10 @@ async function runTextSearch(
             return {
               places: [],
               error:
-                "Places API (New) is not enabled for this key's Google Cloud project. Enable it in Google Cloud Console (APIs & Services → Library → Places API (New)), wait a few minutes, then refresh."
+                "Places API (New) is not enabled for this key's Google Cloud project. Enable it in Google Cloud Console (APIs & Services -> Library -> Places API (New)), wait a few minutes, then refresh."
             };
           }
-          return {places: [], error: googleMsg};
+          return { places: [], error: googleMsg };
         }
       } catch {
         // fall through to generic message
@@ -206,13 +205,12 @@ async function runTextSearch(
       };
     }
 
-    const data = (await res.json()) as {places?: GooglePlaceResult[]};
+    const data = (await res.json()) as { places?: GooglePlaceResult[] };
     const places = (data.places ?? []).map(mapPlace).filter((p): p is Place => p !== null);
 
-    return {places};
-  } catch (e) {
-    console.warn("[googlePlaces] search error:", e);
-    return {places: [], error: "Failed to connect to Google Places API."};
+    return { places };
+  } catch (_e) {
+    return { places: [], error: "Failed to connect to Google Places API." };
   }
 }
 
@@ -227,7 +225,7 @@ export type LocationPrediction = {
 };
 
 /**
- * City/zip autocomplete via the server-side Places API — uses the same
+ * City/zip autocomplete via the server-side Places API -- uses the same
  * GOOGLE_PLACES_API_KEY as text search, so it works regardless of which APIs
  * the public browser Maps key has enabled.
  */
@@ -237,14 +235,14 @@ export async function autocompleteLocations(input: {
   sessionToken?: string;
   lat?: number;
   lng?: number;
-}): Promise<{predictions: LocationPrediction[]; error?: string}> {
+}): Promise<{ predictions: LocationPrediction[]; error?: string }> {
   if (!PLACES_API_KEY) {
-    return {predictions: [], error: "Google Places API key is not configured."};
+    return { predictions: [], error: "Google Places API key is not configured." };
   }
 
   const query = input.query.trim().slice(0, 80);
   if (query.length < 2) {
-    return {predictions: []};
+    return { predictions: [] };
   }
 
   const body: Record<string, unknown> = {
@@ -259,7 +257,7 @@ export async function autocompleteLocations(input: {
   if (input.lat != null && input.lng != null) {
     body.locationBias = {
       circle: {
-        center: {latitude: input.lat, longitude: input.lng},
+        center: { latitude: input.lat, longitude: input.lng },
         radius: 50000
       }
     };
@@ -276,7 +274,6 @@ export async function autocompleteLocations(input: {
     });
 
     if (!res.ok) {
-      console.warn("[googlePlaces] autocomplete failed:", res.status, await res.text());
       return {
         predictions: [],
         error: `Location suggestions failed (${res.status}).`
@@ -287,10 +284,10 @@ export async function autocompleteLocations(input: {
       suggestions?: {
         placePrediction?: {
           placeId?: string;
-          text?: {text?: string};
+          text?: { text?: string };
           structuredFormat?: {
-            mainText?: {text?: string};
-            secondaryText?: {text?: string};
+            mainText?: { text?: string };
+            secondaryText?: { text?: string };
           };
         };
       }[];
@@ -309,9 +306,8 @@ export async function autocompleteLocations(input: {
       });
     }
 
-    return {predictions};
-  } catch (e) {
-    console.warn("[googlePlaces] autocomplete error:", e);
+    return { predictions };
+  } catch (_e) {
     return {
       predictions: [],
       error: "Failed to load location suggestions."
@@ -323,7 +319,7 @@ export async function autocompleteLocations(input: {
 export async function resolveLocationPlace(
   placeId: string,
   sessionToken?: string
-): Promise<{label: string; lat: number; lng: number} | null> {
+): Promise<{ label: string; lat: number; lng: number } | null> {
   if (!PLACES_API_KEY) return null;
 
   try {
@@ -339,13 +335,12 @@ export async function resolveLocationPlace(
     );
 
     if (!res.ok) {
-      console.warn("[googlePlaces] resolve failed:", res.status, await res.text());
       return null;
     }
 
     const raw = (await res.json()) as {
       formattedAddress?: string;
-      location?: {latitude?: number; longitude?: number};
+      location?: { latitude?: number; longitude?: number };
     };
     if (raw.location?.latitude == null || raw.location?.longitude == null) {
       return null;
@@ -356,15 +351,14 @@ export async function resolveLocationPlace(
       lat: raw.location.latitude,
       lng: raw.location.longitude
     };
-  } catch (e) {
-    console.warn("[googlePlaces] resolve error:", e);
+  } catch (_e) {
     return null;
   }
 }
 
 export async function getPlaceDetails(
   placeId: string
-): Promise<{details: PlaceDetails | null; error?: string}> {
+): Promise<{ details: PlaceDetails | null; error?: string }> {
   if (!PLACES_API_KEY) {
     return {
       details: null,
@@ -385,15 +379,14 @@ export async function getPlaceDetails(
     );
 
     if (!res.ok) {
-      const errText = await res.text();
-      console.warn("[googlePlaces] details failed:", res.status, errText);
-      return {details: null, error: "Failed to load place details."};
+      const _errText = await res.text();
+      return { details: null, error: "Failed to load place details." };
     }
 
     const raw = (await res.json()) as GooglePlaceDetailsResult;
     const base = mapPlace(raw);
     if (!base) {
-      return {details: null, error: "Invalid place data."};
+      return { details: null, error: "Invalid place data." };
     }
 
     return {
@@ -406,8 +399,7 @@ export async function getPlaceDetails(
         weekdayDescriptions: raw.regularOpeningHours?.weekdayDescriptions
       }
     };
-  } catch (e) {
-    console.warn("[googlePlaces] details error:", e);
-    return {details: null, error: "Failed to connect to Google Places API."};
+  } catch (_e) {
+    return { details: null, error: "Failed to connect to Google Places API." };
   }
 }

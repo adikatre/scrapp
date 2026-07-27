@@ -2,14 +2,14 @@
 // This allows us to use React hooks like useState, useEffect, and useRef.
 "use client";
 
-import {ArrowDown, ArrowRight, Camera, Github, Globe, MapPin, Recycle, Trash2} from "lucide-react";
+import { ArrowDown, ArrowRight, Camera, Github, Globe, Recycle, Trash2 } from "lucide-react";
 import Link from "next/link";
 // Import necessary React hooks and components.
 import type React from "react";
-import {useEffect, useRef, useState} from "react";
-import {Button} from "@/components/ui/button";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
-import {cn} from "@/lib/utils";
+import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 // This is a custom hook to detect if an element is visible on the screen.
 // It uses the Intersection Observer API for performance.
@@ -39,7 +39,7 @@ const useOnScreen = (options: IntersectionObserverInit) => {
         observer.unobserve(currentRef);
       }
     };
-  }, [ref, options]);
+  }, [options]);
 
   return [ref, isVisible] as const;
 };
@@ -60,7 +60,7 @@ const AnimatedStatistic = ({
   increment?: number;
 }) => {
   const [count, setCount] = useState(0);
-  const [ref, isVisible] = useOnScreen({threshold: 0.2});
+  const [ref, isVisible] = useOnScreen({ threshold: 0.2 });
 
   useEffect(() => {
     if (isVisible) {
@@ -107,14 +107,14 @@ const AnimatedStatistic = ({
 
 // The main component for your home page.
 export default function HomePage() {
-  const [mainCardRef, isMainCardVisible] = useOnScreen({threshold: 0.1});
-  const [recyclablesRef, isRecyclablesVisible] = useOnScreen({threshold: 0.15});
+  const [mainCardRef, isMainCardVisible] = useOnScreen({ threshold: 0.1 });
+  const [recyclablesRef, isRecyclablesVisible] = useOnScreen({ threshold: 0.15 });
   // Create a ref for the statistics section
   const statsSectionRef = useRef<HTMLElement>(null);
 
   // Function to handle smooth scrolling
   const handleScrollDown = () => {
-    statsSectionRef.current?.scrollIntoView({behavior: "smooth"});
+    statsSectionRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
@@ -161,11 +161,13 @@ export default function HomePage() {
         </div>
 
         {/* Scroll Down Arrow */}
-        <div
+        <button
+          type="button"
           onClick={handleScrollDown}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 cursor-pointer animate-bob z-30">
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 cursor-pointer animate-bob z-30"
+          aria-label="Scroll down to statistics">
           <ArrowDown className="w-8 h-8 text-muted-foreground" />
-        </div>
+        </button>
       </section>
 
       {/* Statistics Section */}
@@ -351,9 +353,9 @@ export default function HomePage() {
 
               return (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-20">
-                  {items.map((it, idx) => (
+                  {items.map((it) => (
                     <Card
-                      key={idx}
+                      key={it.item_name}
                       className="group relative overflow-hidden border-none bg-card/70 backdrop-blur-xl shadow-xl transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl">
                       <CardHeader className="relative">
                         <div className="flex items-start justify-between gap-4">
@@ -372,8 +374,8 @@ export default function HomePage() {
                         <div>
                           <p className="text-base font-medium">Prep steps</p>
                           <ul className="mt-2 list-disc pl-5 space-y-1 text-base text-foreground/90">
-                            {it.prep_steps.map((s, i) => (
-                              <li key={i}>{s}</li>
+                            {it.prep_steps.map((s) => (
+                              <li key={s}>{s}</li>
                             ))}
                           </ul>
                         </div>

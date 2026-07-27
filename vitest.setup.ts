@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom";
 import * as React from "react";
-import {afterAll, afterEach, beforeAll, vi} from "vitest";
+import { afterAll, afterEach, beforeAll, vi } from "vitest";
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
@@ -16,12 +16,12 @@ vi.mock("next/navigation", () => ({
 
 // Mock next/image
 vi.mock("next/image", () => ({
-  default: ({src, alt, ...props}: any) => React.createElement("img", {src, alt, ...props})
+  default: ({ src, alt, ...props }: any) => React.createElement("img", { src, alt, ...props })
 }));
 
 // Mock react-webcam
 vi.mock("react-webcam", () => ({
-  default: ({...props}: any) => React.createElement("div", {"data-testid": "webcam", ...props})
+  default: ({ ...props }: any) => React.createElement("div", { "data-testid": "webcam", ...props })
 }));
 
 // Mock sonner toast
@@ -37,11 +37,11 @@ vi.mock("sonner", () => ({
 
 // Mock @vis.gl/react-google-maps
 vi.mock("@vis.gl/react-google-maps", () => ({
-  APIProvider: ({children}: any) => React.createElement("div", {}, children),
-  Map: ({...props}: any) => React.createElement("div", {"data-testid": "google-map", ...props}),
-  Marker: ({...props}: any) => React.createElement("div", {"data-testid": "marker", ...props}),
-  InfoWindow: ({children}: any) =>
-    React.createElement("div", {"data-testid": "info-window"}, children)
+  APIProvider: ({ children }: any) => React.createElement("div", {}, children),
+  Map: ({ ...props }: any) => React.createElement("div", { "data-testid": "google-map", ...props }),
+  Marker: ({ ...props }: any) => React.createElement("div", { "data-testid": "marker", ...props }),
+  InfoWindow: ({ children }: any) =>
+    React.createElement("div", { "data-testid": "info-window" }, children)
 }));
 
 // Mock lucide-react icons - include all icons used in the codebase
@@ -104,8 +104,8 @@ const iconNames = [
 vi.mock("lucide-react", () => {
   const mockComponents: Record<string, any> = {};
   iconNames.forEach((name) => {
-    mockComponents[name] = ({...props}: any) =>
-      React.createElement("svg", {"data-testid": `icon-${name.toLowerCase()}`, ...props});
+    mockComponents[name] = ({ ...props }: any) =>
+      React.createElement("svg", { "data-testid": `icon-${name.toLowerCase()}`, ...props });
   });
   return mockComponents;
 });

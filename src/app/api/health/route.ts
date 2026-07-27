@@ -1,4 +1,4 @@
-import {NextResponse} from "next/server";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   const checks = {
@@ -27,7 +27,7 @@ export async function GET() {
       const timeoutId = setTimeout(() => controller.abort(), 3000);
 
       const res = await fetch(`${backendUrl}/health`, {
-        headers: {Authorization: `Bearer ${backendKey}`},
+        headers: { Authorization: `Bearer ${backendKey}` },
         signal: controller.signal
       });
 

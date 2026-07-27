@@ -1,9 +1,9 @@
-import type {LocationCategoryKey} from "../locationCategories";
-import type {Place} from "../types";
-import {type GeoBounds, isWithinBounds} from "./geo";
-import {resolveDropoffKind} from "./items";
+import type { LocationCategoryKey } from "../locationCategories";
+import type { Place } from "../types";
+import { type GeoBounds, isWithinBounds } from "./geo";
+import { resolveDropoffKind } from "./items";
 import RECORDS from "./socalBatteries.data.json";
-import type {CuratedMatchInput, CuratedProvider} from "./types";
+import type { CuratedMatchInput, CuratedProvider } from "./types";
 
 /**
  * Battery Network (batterynetwork.org) drop-off sites across Southern

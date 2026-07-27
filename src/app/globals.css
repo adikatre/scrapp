@@ -154,4 +154,5 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: var(--background);}
+  --color-background: var(--background);
+}

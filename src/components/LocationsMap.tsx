@@ -1,8 +1,8 @@
 "use client";
 
-import {Map, Marker, useApiIsLoaded, useMap} from "@vis.gl/react-google-maps";
-import {useEffect} from "react";
-import type {Place} from "@/lib/types";
+import { Map, Marker, useApiIsLoaded, useMap } from "@vis.gl/react-google-maps";
+import { useEffect } from "react";
+import type { Place } from "@/lib/types";
 
 type LocationsMapProps = {
   places: Place[];
@@ -47,7 +47,7 @@ function PanToSelected({
   useEffect(() => {
     if (!map || !selectedPlaceId) return;
     const place = places.find((p) => p.id === selectedPlaceId);
-    if (place) map.panTo({lat: place.lat, lng: place.lng});
+    if (place) map.panTo({ lat: place.lat, lng: place.lng });
   }, [map, selectedPlaceId, places]);
 
   return null;
@@ -68,10 +68,10 @@ export function LocationsMap({
 
   const center =
     userLat != null && userLng != null
-      ? {lat: userLat, lng: userLng}
+      ? { lat: userLat, lng: userLng }
       : places.length > 0
-        ? {lat: places[0].lat, lng: places[0].lng}
-        : {lat: 32.7157, lng: -117.1611};
+        ? { lat: places[0].lat, lng: places[0].lng }
+        : { lat: 32.7157, lng: -117.1611 };
 
   return (
     <Map
@@ -80,7 +80,7 @@ export function LocationsMap({
       defaultZoom={12}
       gestureHandling="greedy"
       disableDefaultUI={false}
-      style={{width: "100%", height: "100%", minHeight: "300px"}}>
+      style={{ width: "100%", height: "100%", minHeight: "300px" }}>
       <PanToSelected places={places} selectedPlaceId={selectedPlaceId} />
 
       {/* Blue "you are here" dot with halo — visually distinct from the
@@ -88,7 +88,7 @@ export function LocationsMap({
       {apiIsLoaded && userLat != null && userLng != null && (
         <>
           <Marker
-            position={{lat: userLat, lng: userLng}}
+            position={{ lat: userLat, lng: userLng }}
             title="Your location"
             clickable={false}
             zIndex={999}
@@ -101,7 +101,7 @@ export function LocationsMap({
             }}
           />
           <Marker
-            position={{lat: userLat, lng: userLng}}
+            position={{ lat: userLat, lng: userLng }}
             title="Your location"
             clickable={false}
             zIndex={1000}
@@ -123,7 +123,7 @@ export function LocationsMap({
           return (
             <Marker
               key={place.id}
-              position={{lat: place.lat, lng: place.lng}}
+              position={{ lat: place.lat, lng: place.lng }}
               title={place.name}
               icon={pinIcon(isSelected)}
               zIndex={isSelected ? 998 : undefined}

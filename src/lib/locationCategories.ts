@@ -1,5 +1,13 @@
-import {AlertTriangle, Battery, Heart, Leaf, type LucideIcon, Recycle, Trash2} from "lucide-react";
-import type {PredictionResult} from "./types";
+import {
+  AlertTriangle,
+  Battery,
+  Heart,
+  Leaf,
+  type LucideIcon,
+  Recycle,
+  Trash2
+} from "lucide-react";
+import type { PredictionResult } from "./types";
 
 export type LocationCategoryKey =
   | "recycle"
@@ -179,7 +187,7 @@ export function resolveCategoryKey(route: string, bin?: string | null): Location
 
 const NON_WASTE_ROUTES = ["Living Things", "City Infrastructure"];
 
-function isWasteItem(item: {route: string}): boolean {
+function isWasteItem(item: { route: string }): boolean {
   return !NON_WASTE_ROUTES.includes(item.route);
 }
 
@@ -314,7 +322,7 @@ const ITEM_QUERY_RULES: ItemQueryRule[] = [
  * the same `?item=` param the scanner uses, so search behavior is identical. */
 export function getItemSubcategories(
   categoryKey: LocationCategoryKey
-): {label: string; item: string}[] {
+): { label: string; item: string }[] {
   return ITEM_QUERY_RULES.filter((r) => r.categories.includes(categoryKey)).map((r) => ({
     label: r.label,
     item: r.keywords[0]
@@ -402,7 +410,7 @@ export function buildLocationsHref(
   bin?: string | null
 ): string {
   const category = resolveCategoryKey(route, bin);
-  const params = new URLSearchParams({category});
+  const params = new URLSearchParams({ category });
   if (itemName) params.set("item", itemName);
   // Pass the curbside bin so /locations can surface the "toss it at the curb"
   // note; only curbside bins are recognized, so Special Drop-off is omitted.

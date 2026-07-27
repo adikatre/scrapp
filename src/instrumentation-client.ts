@@ -4,9 +4,6 @@ const apiKey = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
 const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
 
 if (!apiKey) {
-  if (process.env.NODE_ENV === "development") {
-    console.warn("[PostHog] NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN not set, analytics disabled");
-  }
   throw new Error("[PostHog] NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN not set, analytics disabled");
 }
 
