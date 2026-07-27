@@ -1,4 +1,4 @@
-import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   checkPhotoRateLimit,
   checkPlacesRateLimit,
@@ -19,32 +19,32 @@ const createMockRequest = (headers: Record<string, string>) => {
 describe("rate-limit", () => {
   describe("validateImageFile", () => {
     it("accepts valid JPEG file", () => {
-      const file = new File(["fake image"], "test.jpg", {type: "image/jpeg"});
-      Object.defineProperty(file, "size", {value: 1024 * 1024}); // 1 MB
+      const file = new File(["fake image"], "test.jpg", { type: "image/jpeg" });
+      Object.defineProperty(file, "size", { value: 1024 * 1024 }); // 1 MB
 
       const error = validateImageFile(file);
       expect(error).toBeNull();
     });
 
     it("accepts valid PNG file", () => {
-      const file = new File(["fake image"], "test.png", {type: "image/png"});
-      Object.defineProperty(file, "size", {value: 1024 * 1024}); // 1 MB
+      const file = new File(["fake image"], "test.png", { type: "image/png" });
+      Object.defineProperty(file, "size", { value: 1024 * 1024 }); // 1 MB
 
       const error = validateImageFile(file);
       expect(error).toBeNull();
     });
 
     it("accepts valid WebP file", () => {
-      const file = new File(["fake image"], "test.webp", {type: "image/webp"});
-      Object.defineProperty(file, "size", {value: 1024 * 1024}); // 1 MB
+      const file = new File(["fake image"], "test.webp", { type: "image/webp" });
+      Object.defineProperty(file, "size", { value: 1024 * 1024 }); // 1 MB
 
       const error = validateImageFile(file);
       expect(error).toBeNull();
     });
 
     it("rejects file too large", () => {
-      const file = new File(["fake image"], "test.jpg", {type: "image/jpeg"});
-      Object.defineProperty(file, "size", {value: 6 * 1024 * 1024}); // 6 MB
+      const file = new File(["fake image"], "test.jpg", { type: "image/jpeg" });
+      Object.defineProperty(file, "size", { value: 6 * 1024 * 1024 }); // 6 MB
 
       const error = validateImageFile(file);
       expect(error).toContain("too large");
@@ -52,32 +52,32 @@ describe("rate-limit", () => {
     });
 
     it("rejects invalid MIME type", () => {
-      const file = new File(["fake image"], "test.gif", {type: "image/gif"});
-      Object.defineProperty(file, "size", {value: 1024 * 1024}); // 1 MB
+      const file = new File(["fake image"], "test.gif", { type: "image/gif" });
+      Object.defineProperty(file, "size", { value: 1024 * 1024 }); // 1 MB
 
       const error = validateImageFile(file);
       expect(error).toContain("Invalid file type");
     });
 
     it("rejects non-image files", () => {
-      const file = new File(["fake pdf"], "test.pdf", {type: "application/pdf"});
-      Object.defineProperty(file, "size", {value: 1024 * 1024}); // 1 MB
+      const file = new File(["fake pdf"], "test.pdf", { type: "application/pdf" });
+      Object.defineProperty(file, "size", { value: 1024 * 1024 }); // 1 MB
 
       const error = validateImageFile(file);
       expect(error).toContain("Invalid file type");
     });
 
     it("rejects invalid file extension", () => {
-      const file = new File(["fake image"], "test.bmp", {type: "image/jpeg"});
-      Object.defineProperty(file, "size", {value: 1024 * 1024}); // 1 MB
+      const file = new File(["fake image"], "test.bmp", { type: "image/jpeg" });
+      Object.defineProperty(file, "size", { value: 1024 * 1024 }); // 1 MB
 
       const error = validateImageFile(file);
       expect(error).toContain("Invalid file extension");
     });
 
     it("accepts blob files (camera captures)", () => {
-      const file = new File(["fake image"], "blob", {type: "image/jpeg"});
-      Object.defineProperty(file, "size", {value: 1024 * 1024}); // 1 MB
+      const file = new File(["fake image"], "blob", { type: "image/jpeg" });
+      Object.defineProperty(file, "size", { value: 1024 * 1024 }); // 1 MB
 
       const error = validateImageFile(file);
       expect(error).toBeNull();
@@ -86,17 +86,17 @@ describe("rate-limit", () => {
 
   describe("getClientIdentifier", () => {
     it("uses cf-connecting-ip header (Cloudflare)", () => {
-      const req = createMockRequest({"cf-connecting-ip": "1.2.3.4"});
+      const req = createMockRequest({ "cf-connecting-ip": "1.2.3.4" });
       expect(getClientIdentifier(req)).toBe("1.2.3.4");
     });
 
     it("uses x-real-ip header", () => {
-      const req = createMockRequest({"x-real-ip": "5.6.7.8"});
+      const req = createMockRequest({ "x-real-ip": "5.6.7.8" });
       expect(getClientIdentifier(req)).toBe("5.6.7.8");
     });
 
     it("uses x-forwarded-for header (first IP)", () => {
-      const req = createMockRequest({"x-forwarded-for": "9.10.11.12, 13.14.15.16"});
+      const req = createMockRequest({ "x-forwarded-for": "9.10.11.12, 13.14.15.16" });
       expect(getClientIdentifier(req)).toBe("9.10.11.12");
     });
 

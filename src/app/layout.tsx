@@ -1,9 +1,7 @@
-import {Analytics} from "@vercel/analytics/next";
-import {SpeedInsights} from "@vercel/speed-insights/next";
-import type {Metadata, Viewport} from "next";
-import {Geist} from "next/font/google";
-import {PillNav} from "@/components/PillNav";
-import {Toaster} from "@/components/ui/sonner";
+import type { Metadata, Viewport } from "next";
+import { Geist } from "next/font/google";
+import { PillNav } from "@/components/PillNav";
+import { Toaster } from "@/components/ui/sonner";
 
 import "@/app/globals.css";
 
@@ -40,8 +38,8 @@ export default function RootLayout({
           {children}
         </main>
         <Toaster richColors closeButton />
-        <Analytics />
-        <SpeedInsights />
+        {/* <Analytics />
+        <SpeedInsights /> */}
       </body>
     </html>
   );

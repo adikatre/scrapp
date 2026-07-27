@@ -1,5 +1,5 @@
-import type {LocationCategoryKey} from "../locationCategories";
-import type {Place} from "../types";
+import type { LocationCategoryKey } from "../locationCategories";
+import type { Place } from "../types";
 
 /** The search context a curated program is matched against. */
 export type CuratedMatchInput = {

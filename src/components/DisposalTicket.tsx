@@ -1,12 +1,12 @@
 "use client";
 
-import {MapPin, RotateCcw, Sparkles} from "lucide-react";
+import { MapPin, RotateCcw, Sparkles } from "lucide-react";
 import Link from "next/link";
-import {Button} from "@/components/ui/button";
-import {Card, CardContent, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
-import {buildLocationsHref, getCategoryByKey, resolveCategoryKey} from "@/lib/locationCategories";
-import type {ScanTicket} from "@/lib/types";
-import {cn} from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { buildLocationsHref, getCategoryByKey, resolveCategoryKey } from "@/lib/locationCategories";
+import type { ScanTicket } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 // Mirrors the accent palette already used for waste categories on the
 // homepage's "Lesser Known Recyclables" cards, mapped onto our category keys.
@@ -35,7 +35,7 @@ const BIN_ACCENTS: Record<string, string> = {
   "Special Drop-off": "bg-amber-500/15 text-amber-400 ring-amber-500/30"
 };
 
-function BinChip({bin}: {bin?: string}) {
+function BinChip({ bin }: { bin?: string }) {
   if (!bin) return null;
   const accent = BIN_ACCENTS[bin];
   if (!accent) return null;
@@ -134,7 +134,15 @@ export function DisposalTicket({
           <img
             src={ticket.image}
             alt={ticket.itemName || "Scanned item"}
-            onClick={() => ticket.image && onImageClick?.(ticket.image)}
+            onClick={() => onImageClick?.(ticket.image as string)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onImageClick?.(ticket.image as string);
+              }
+            }}
+            tabIndex={onImageClick ? 0 : undefined}
+            role={onImageClick ? "button" : undefined}
             className={cn(
               "max-h-56 w-full rounded-lg border border-muted object-cover shadow-sm",
               onImageClick ? "cursor-pointer" : ""

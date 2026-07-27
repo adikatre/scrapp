@@ -1,11 +1,11 @@
 "use client";
 
-import {useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 import DesktopScanPage from "@/app/cam/DesktopScanPage";
 import MobileScanPage from "@/app/cam/MobileScanPage";
-import {useIsMobile} from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import useMediaQuery from "@/hooks/useMediaQuery";
-import type {ScanTicket} from "@/lib/types";
+import type { ScanTicket } from "@/lib/types";
 
 const SCAN_HISTORY_STORAGE_KEY = "scrapp-scan-history";
 const MAX_STORED_SCANS = 20;
@@ -34,7 +34,7 @@ function saveStoredTickets(tickets: ScanTicket[]): void {
     try {
       localStorage.setItem(
         SCAN_HISTORY_STORAGE_KEY,
-        JSON.stringify(trimmed.map((ticket) => ({...ticket, image: null})))
+        JSON.stringify(trimmed.map((ticket) => ({ ...ticket, image: null })))
       );
     } catch {
       // Still over quota; skip persisting this time.
@@ -57,7 +57,7 @@ export default function CamPage() {
     if (hydrated) saveStoredTickets(tickets);
   }, [tickets, hydrated]);
 
-  const meetsQuery = useMediaQuery(1100);
+  const meetsQuery = useMediaQuery(800);
 
   const handleScanComplete = (payload: {
     image: string | null;

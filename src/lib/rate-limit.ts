@@ -3,19 +3,17 @@
  * Uses Upstash Redis in production, falls back to in-memory for development
  */
 
-import {Ratelimit} from "@upstash/ratelimit";
-import {Redis} from "@upstash/redis";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 
 // Check if Upstash credentials are available
 const hasUpstash = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 
 // Create Redis client only if credentials exist
-const redis = hasUpstash
-  ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!
-    })
-  : null;
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+const redis =
+  hasUpstash && redisUrl && redisToken ? new Redis({ url: redisUrl, token: redisToken }) : null;
 
 // Scan rate limiter: 10 scans per minute per IP (adjust as needed)
 // Uses Upstash in production, in-memory fallback in development
@@ -53,7 +51,7 @@ export const photoRateLimit = redis
  * Note: This doesn't work across multiple instances
  */
 export class InMemoryRateLimiter {
-  private store = new Map<string, {count: number; resetTime: number}>();
+  private store = new Map<string, { count: number; resetTime: number }>();
   private maxRequests: number;
   private windowMs: number;
 
@@ -84,7 +82,7 @@ export class InMemoryRateLimiter {
     const record = this.store.get(key);
 
     if (!record || now > record.resetTime) {
-      this.store.set(key, {count: 1, resetTime: now + this.windowMs});
+      this.store.set(key, { count: 1, resetTime: now + this.windowMs });
       return {
         success: true,
         limit: this.maxRequests,

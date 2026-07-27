@@ -1,5 +1,5 @@
-import {haversineDistance} from "../geo";
-import type {Place} from "../types";
+import { haversineDistance } from "../geo";
+import type { Place } from "../types";
 
 /** A rectangular lat/lng region a curated program can be gated to. */
 export type GeoBounds = {

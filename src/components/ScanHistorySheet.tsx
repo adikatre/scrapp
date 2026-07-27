@@ -1,12 +1,12 @@
 "use client";
 
-import {History} from "lucide-react";
-import {useState} from "react";
-import {ScanHistory} from "@/components/ScanHistory";
-import {Button} from "@/components/ui/button";
-import {Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger} from "@/components/ui/sheet";
-import type {ScanTicket} from "@/lib/types";
-import {cn} from "@/lib/utils";
+import { History } from "lucide-react";
+import { useState } from "react";
+import { ScanHistory } from "@/components/ScanHistory";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import type { ScanTicket } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 interface ScanHistorySheetProps {
   tickets: ScanTicket[];

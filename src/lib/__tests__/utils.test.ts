@@ -1,5 +1,5 @@
-import {describe, expect, it, vi} from "vitest";
-import {cn} from "../utils";
+import { describe, expect, it } from "vitest";
+import { cn } from "../utils";
 
 describe("utils", () => {
   describe("cn", () => {

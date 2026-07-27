@@ -1,7 +1,7 @@
 "use client";
 
-import {DisposalTicket} from "@/components/DisposalTicket";
-import type {ScanTicket} from "@/lib/types";
+import { DisposalTicket } from "@/components/DisposalTicket";
+import type { ScanTicket } from "@/lib/types";
 
 interface ScanHistoryProps {
   tickets: ScanTicket[];
@@ -22,7 +22,11 @@ export function ScanHistory({
   return (
     <div className="flex w-full flex-col gap-2">
       {tickets.map((ticket) => (
-        <button key={ticket.id} onClick={() => onSelect(ticket.id)} className="w-full text-left">
+        <button
+          key={ticket.id}
+          type="button"
+          onClick={() => onSelect(ticket.id)}
+          className="w-full text-left">
           <DisposalTicket ticket={ticket} compact />
         </button>
       ))}

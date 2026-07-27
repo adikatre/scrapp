@@ -1,18 +1,18 @@
 "use client";
 
-import {Camera, Home, MapPin} from "lucide-react";
+import { Camera, Home, MapPin } from "lucide-react";
 import Link from "next/link";
-import {usePathname} from "next/navigation";
-import {useLayoutEffect, useRef, useState} from "react";
-import {cn} from "@/lib/utils";
+import { usePathname } from "next/navigation";
+import { useLayoutEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 
 const LINKS = [
-  {href: "/", label: "Home", icon: Home},
-  {href: "/cam", label: "Scan", icon: Camera},
-  {href: "/locations", label: "Locations", icon: MapPin}
+  { href: "/", label: "Home", icon: Home },
+  { href: "/cam", label: "Scan", icon: Camera },
+  { href: "/locations", label: "Locations", icon: MapPin }
 ] as const;
 
-type IndicatorRect = {left: number; top: number; width: number; height: number};
+type IndicatorRect = { left: number; top: number; width: number; height: number };
 
 export function PillNav() {
   const pathname = usePathname();
@@ -66,7 +66,7 @@ export function PillNav() {
           }}
         />
       )}
-      {LINKS.map(({href, label, icon: Icon}) => {
+      {LINKS.map(({ href, label, icon: Icon }) => {
         const isActive = pathname === href;
         return (
           <Link

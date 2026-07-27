@@ -1,10 +1,10 @@
-import {describe, expect, it} from "vitest";
-import {type DropoffKind, resolveDropoffKind} from "@/lib/curated/items";
+import { describe, expect, it } from "vitest";
+import { type DropoffKind, resolveDropoffKind } from "@/lib/curated/items";
 
 describe("curated/items", () => {
   describe("resolveDropoffKind", () => {
     it("uses item name when available", () => {
-      const result = resolveDropoffKind({item: "car battery", queries: []});
+      const result = resolveDropoffKind({ item: "car battery", queries: [] });
       expect(result).toBe("vehicle");
     });
 

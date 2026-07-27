@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 
 const MOBILE_BREAKPOINT = 650;
 
@@ -41,4 +41,4 @@ function useIsMobile(queryTouch = false) {
   return isSmallScreen;
 }
 
-export {useIsMobile};
+export { useIsMobile };

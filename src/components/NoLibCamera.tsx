@@ -1,9 +1,9 @@
 "use client";
 
-import {Camera as CameraIcon, X} from "lucide-react";
-import {useRef, useState} from "react";
-import {Button} from "@/components/ui/button";
-import {Card, CardContent} from "@/components/ui/card";
+import { Camera as CameraIcon, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface CameraProps {
   onCapture?: (imageData: string) => void;
@@ -11,7 +11,7 @@ interface CameraProps {
   className?: string;
 }
 
-export function ManualCamera({onCapture, onClose, className}: CameraProps) {
+export function ManualCamera({ onCapture, onClose, className }: CameraProps) {
   const [isActive, setIsActive] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -22,7 +22,7 @@ export function ManualCamera({onCapture, onClose, className}: CameraProps) {
 
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {facingMode: "environment"}
+        video: { facingMode: "environment" }
       });
 
       if (videoRef.current) {
@@ -31,14 +31,16 @@ export function ManualCamera({onCapture, onClose, className}: CameraProps) {
         setStream(mediaStream);
         setIsActive(true);
       }
-    } catch (error) {
-      console.error("Error accessing camera:", error);
+    } catch {
+      // Error accessing camera - silently fail
     }
   };
 
   const stopCamera = () => {
     if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
+      stream.getTracks().forEach((track) => {
+        track.stop();
+      });
       setStream(null);
       setIsActive(false);
     }
@@ -91,8 +93,7 @@ export function ManualCamera({onCapture, onClose, className}: CameraProps) {
                   autoPlay
                   playsInline
                   className="w-full rounded-lg bg-black"
-                  style={{aspectRatio: "4/3"}}
-                />
+                  style={{ aspectRatio: "4/3" }}></video>
                 <div className="flex gap-2 justify-center">
                   <Button onClick={captureImage}>Capture Photo</Button>
                   <Button variant="outline" onClick={stopCamera}>
@@ -104,7 +105,7 @@ export function ManualCamera({onCapture, onClose, className}: CameraProps) {
               <div className="text-center space-y-4">
                 <div
                   className="w-full bg-gray-100 rounded-lg flex items-center justify-center"
-                  style={{aspectRatio: "4/3"}}>
+                  style={{ aspectRatio: "4/3" }}>
                   <CameraIcon className="h-12 w-12 text-gray-400" />
                 </div>
                 <Button onClick={startCamera}>Start Camera</Button>

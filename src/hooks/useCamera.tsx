@@ -1,12 +1,12 @@
 "use client";
 
-import {ComponentProps, useRef, useState} from "react";
-import Webcam, {type WebcamProps} from "react-webcam";
+import { useRef, useState } from "react";
+import Webcam, { type WebcamProps } from "react-webcam";
 
 export default function useCamera() {
   const webcamRef = useRef<Webcam>(null);
 
-  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
+  const [facingMode, setFacingMode] = useState<"environment" | "user">("user");
 
   const getCaptureImage = () => {
     if (webcamRef.current) {
@@ -15,20 +15,18 @@ export default function useCamera() {
     }
   };
 
-  const switchDirection = (facingMode?: "environment" | "user") => {
-    if (facingMode) return setFacingMode(facingMode);
+  const switchDirection = (newFacingMode?: "environment" | "user") => {
+    if (newFacingMode) return setFacingMode(newFacingMode);
 
-    if (webcamRef.current) {
-      const newFacingMode = facingMode === "user" ? "environment" : "user";
-      setFacingMode(newFacingMode);
-    }
+    setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
   };
 
-  const Component = ({...props}: Partial<WebcamProps>) => {
+  const Component = ({ ...props }: Partial<WebcamProps>) => {
     const propsToAssign = {
       ref: webcamRef,
       screenshotFormat: "image/png" as const,
-      videoConstraints: {facingMode},
+      videoConstraints: { facingMode },
+      mirrored: facingMode === "user",
 
       ...props
     };

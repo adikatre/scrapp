@@ -1,21 +1,20 @@
 "use client";
 
 import posthog from "posthog-js";
-import {PostHogProvider as PHProvider} from "posthog-js/react";
-import {useEffect} from "react";
+import { PostHogProvider as PHProvider } from "posthog-js/react";
+import { useEffect } from "react";
 
 interface PostHogProviderProps {
   children: React.ReactNode;
 }
 
-export function PostHogProvider({children}: PostHogProviderProps) {
+export function PostHogProvider({ children }: PostHogProviderProps) {
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
     const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
 
     if (!apiKey) {
       if (process.env.NODE_ENV === "development") {
-        console.warn("[PostHog] NEXT_PUBLIC_POSTHOG_KEY not set, analytics disabled");
       }
       return;
     }
@@ -217,4 +216,4 @@ export function resetUser() {
   posthog.reset();
 }
 
-export {posthog};
+export { posthog };
