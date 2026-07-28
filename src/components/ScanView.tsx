@@ -18,21 +18,13 @@ import {
   getDominantSearchQueries
 } from "@/lib/locationCategories";
 import { BaseStates } from "@/lib/states";
-import type { ScanTicket } from "@/lib/types";
+import type { ScanTicket, ScanTicketPayload } from "@/lib/types";
 import { dataURLtoFile, summarizePrediction } from "@/lib/utils";
 
 export interface ScanViewProps {
   activeTicket: ScanTicket | null;
   pastTickets: ScanTicket[];
-  onScanComplete: (payload: {
-    image: string | null;
-    note?: string;
-    guidance: string;
-    disposalRoute: string;
-    bin?: string;
-    itemName: string;
-    searchQueries?: string[];
-  }) => void;
+  onScanComplete: (payload: ScanTicketPayload) => void;
   onSelectTicket: (id: string) => void;
   onScanAgain: () => void;
   isMobile?: boolean;
@@ -82,22 +74,22 @@ export function ScanView({
     setCapturedImage(null);
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleUploadImage = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          setCapturedImage(event.target?.result as string);
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-    input.click();
-    input.remove();
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setCapturedImage(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+    e.target.value = "";
   };
 
   const handleModifyNote = (e: ChangeEvent<HTMLTextAreaElement>) => {
@@ -301,6 +293,13 @@ export function ScanView({
 
   return (
     <section className="relative h-screen w-full overflow-hidden bg-black">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        className="hidden"
+      />
       {/* Camera stage - fills the screen */}
       <div className="relative h-full w-full">
         {renderCameraView()}

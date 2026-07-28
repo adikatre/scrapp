@@ -1,7 +1,7 @@
 "use client";
 
 import { Map as GoogleMap, Marker, useApiIsLoaded, useMap } from "@vis.gl/react-google-maps";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import type { Place } from "@/lib/types";
 
 export type LocationMapWidgetProps = {
@@ -57,16 +57,21 @@ export function LocationMapWidget({
 }: LocationMapWidgetProps) {
   const apiIsLoaded = useApiIsLoaded();
 
-  const center =
-    userLat != null && userLng != null
-      ? { lat: userLat, lng: userLng }
-      : places.length > 0
-        ? { lat: places[0].lat, lng: places[0].lng }
-        : { lat: 32.7157, lng: -117.1611 };
+  const center = useMemo(
+    () =>
+      userLat != null && userLng != null
+        ? { lat: userLat, lng: userLng }
+        : places.length > 0
+          ? { lat: places[0].lat, lng: places[0].lng }
+          : { lat: 32.7157, lng: -117.1611 },
+    [userLat, userLng, places]
+  );
+
+  const mapKey = useMemo(() => `${center.lat}-${center.lng}`, [center]);
 
   return (
     <GoogleMap
-      key={`${center.lat}-${center.lng}-${places.length}`}
+      key={mapKey}
       defaultCenter={center}
       defaultZoom={12}
       gestureHandling="greedy"
@@ -106,17 +111,18 @@ export function LocationMapWidget({
         </>
       )}
 
-      {places.map((place) => (
-        <Marker
-          key={place.id}
-          position={{ lat: place.lat, lng: place.lng }}
-          title={place.name}
-          clickable={true}
-          zIndex={place.id === selectedPlaceId ? 100 : 10}
-          icon={pinIcon(place.id === selectedPlaceId)}
-          onClick={() => onSelectPlace?.(place.id)}
-        />
-      ))}
+      {apiIsLoaded &&
+        places.map((place) => (
+          <Marker
+            key={place.id}
+            position={{ lat: place.lat, lng: place.lng }}
+            title={place.name}
+            clickable={true}
+            zIndex={place.id === selectedPlaceId ? 100 : 10}
+            icon={pinIcon(place.id === selectedPlaceId)}
+            onClick={() => onSelectPlace?.(place.id)}
+          />
+        ))}
     </GoogleMap>
   );
 }

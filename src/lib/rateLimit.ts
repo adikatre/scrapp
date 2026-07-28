@@ -54,14 +54,13 @@ export class InMemoryRateLimiter {
   private store = new Map<string, { count: number; resetTime: number }>();
   private maxRequests: number;
   private windowMs: number;
+  private cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(maxRequests: number, windowMs: number) {
     this.maxRequests = maxRequests;
     this.windowMs = windowMs;
-    // Cleanup interval
     if (typeof window === "undefined") {
-      // Only run cleanup on server
-      setInterval(() => {
+      this.cleanupTimer = setInterval(() => {
         const now = Date.now();
         for (const [key, record] of this.store.entries()) {
           if (now > record.resetTime) {
@@ -69,6 +68,13 @@ export class InMemoryRateLimiter {
           }
         }
       }, 60000);
+    }
+  }
+
+  destroy() {
+    if (this.cleanupTimer !== null) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
     }
   }
 

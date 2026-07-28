@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import DesktopScanPage from "@/app/cam/DesktopScanPage";
-import MobileScanPage from "@/app/cam/MobileScanPage";
-import { useIsMobile } from "@/hooks/use-mobile";
 import useMediaQuery from "@/hooks/useMediaQuery";
-import type { ScanTicket } from "@/lib/types";
+import { ScanView } from "@/components/ScanView";
+import type { ScanTicket, ScanTicketPayload } from "@/lib/types";
 
 const SCAN_HISTORY_STORAGE_KEY = "scrapp-scan-history";
 const MAX_STORED_SCANS = 20;
@@ -46,7 +44,6 @@ export default function CamPage() {
   const [tickets, setTickets] = useState<ScanTicket[]>([]);
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
-  const isMobile = useIsMobile();
 
   useEffect(() => {
     setTickets(readStoredTickets());
@@ -59,15 +56,7 @@ export default function CamPage() {
 
   const meetsQuery = useMediaQuery(800);
 
-  const handleScanComplete = (payload: {
-    image: string | null;
-    note?: string;
-    guidance: string;
-    disposalRoute: string;
-    bin?: string;
-    itemName: string;
-    searchQueries?: string[];
-  }) => {
+  const handleScanComplete = (payload: ScanTicketPayload) => {
     const ticket: ScanTicket = {
       id: `${Date.now()}-${Math.random()}`,
       timestamp: new Date(),
@@ -90,19 +79,19 @@ export default function CamPage() {
 
   if (!meetsQuery) {
     return (
-      <MobileScanPage
+      <ScanView
         activeTicket={activeTicket}
         pastTickets={pastTickets}
         onScanComplete={handleScanComplete}
         onSelectTicket={handleSelectTicket}
         onScanAgain={handleScanAgain}
-        isMobile={isMobile ?? true}
+        isMobile
       />
     );
   }
 
   return (
-    <DesktopScanPage
+    <ScanView
       activeTicket={activeTicket}
       pastTickets={pastTickets}
       onScanComplete={handleScanComplete}

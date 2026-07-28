@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useOnScreen } from "@/hooks/useOnScreen";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/utils";
 
 interface AnimatedStatisticProps {
   icon: React.ElementType;

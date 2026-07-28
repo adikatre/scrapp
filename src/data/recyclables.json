@@ -1,0 +1,92 @@
+[
+  {
+    "item_name": "Empty aerosol cans (non-hazardous contents)",
+    "category": "Curbside Recyclable",
+    "misconception_summary": "People often toss aerosol cans in the trash or avoid recycling them altogether.",
+    "the_truth": "In San Diego County, EMPTY aerosol cans are accepted in curbside recycling as metal; non-empty or hazardous-product cans are HHW.",
+    "prep_steps": [
+      "Use up contents completely until no spray or hiss",
+      "Do NOT puncture",
+      "Place loose in blue bin (not bagged)"
+    ],
+    "where_to_take": "If not empty or hazardous: City of San Diego HHW Transfer Facility (appointment required)",
+    "impact_note": "Recycling metal saves significant energy and reduces the need for virgin ore.",
+    "last_verified": "2025-09-13",
+    "short_user_tip": "If it's truly empty, recycle it with metals; if not, book HHW."
+  },
+  {
+    "item_name": "Plastic film & bags (grocery, bread, bubble wrap)",
+    "category": "Store Drop-Off",
+    "misconception_summary": "Many residents put film plastic in the blue bin, where it tangles sorting machinery.",
+    "the_truth": "Not accepted curbside in San Diego—take clean/dry film plastic to participating retail store drop-off locations.",
+    "prep_steps": [
+      "Remove receipts/labels",
+      "Ensure clean and dry",
+      "Stuff smaller bags into one bag (bag-your-bags)"
+    ],
+    "where_to_take": "Participating retailers listed via WasteFreeSD or PlasticFilmRecycling.org",
+    "impact_note": "Keeping film out of curbside prevents MRF jams and improves recycling quality.",
+    "last_verified": "2025-09-13",
+    "short_user_tip": "Never in blue bin—bring clean, dry bags to store drop-off."
+  },
+  {
+    "item_name": "Pizza boxes (clean lid vs. greasy bottom)",
+    "category": "Curbside Recyclable + Organics",
+    "misconception_summary": "People think all pizza boxes are trash because of grease.",
+    "the_truth": "Recycle the clean cardboard portion; food-soiled paper belongs in your green organics bin.",
+    "prep_steps": [
+      "Tear off clean lid for blue bin",
+      "Put greasy bottom in green organics",
+      "Remove liners/food"
+    ],
+    "where_to_take": "Curbside (blue for clean cardboard; green for food-soiled paper)",
+    "impact_note": "Diverts cardboard to recycling and food-soiled paper to compost, reducing landfill methane.",
+    "last_verified": "2025-09-13",
+    "short_user_tip": "Clean lid = blue; greasy bottom = green."
+  },
+  {
+    "item_name": "Rigid plastic plant pots, buckets & toys",
+    "category": "Curbside Recyclable",
+    "misconception_summary": "Residents often trash bulky rigid plastics like pots and buckets.",
+    "the_truth": "The City accepts rigid plastics—including clean pots, buckets, trays and toys—in curbside recycling.",
+    "prep_steps": [
+      "Empty soil/debris",
+      "Quickly rinse if needed",
+      "Place items empty, dry, and loose in blue bin"
+    ],
+    "where_to_take": "Curbside blue bin",
+    "impact_note": "Recycling rigid plastics reduces landfill volume and supports recycled resin markets.",
+    "last_verified": "2025-09-13",
+    "short_user_tip": "Rigid, empty & dry plastic pots and buckets go in blue."
+  },
+  {
+    "item_name": "Scrap metal & metal clothing hangers",
+    "category": "Scrap/Buy-Back",
+    "misconception_summary": "Many try to toss hangers/scrap metal in the blue bin or trash them.",
+    "the_truth": "Scrap metal is NOT accepted in curbside recycling; take to a scrap recycler or find locations via WasteFreeSD.",
+    "prep_steps": [
+      "Remove non-metal parts",
+      "Bundle small pieces safely",
+      "Transport to local recycler"
+    ],
+    "where_to_take": "Scrap metal recycler; search WasteFreeSD.org for locations",
+    "impact_note": "Recycling metal recovers high-value material and prevents equipment jams at MRFs.",
+    "last_verified": "2025-09-13",
+    "short_user_tip": "Not blue-bin—take metal hangers/scrap to a recycler (see WasteFreeSD)."
+  },
+  {
+    "item_name": "Household batteries (AA/AAA, button, lithium-ion)",
+    "category": "Household Hazardous Waste",
+    "misconception_summary": "People still put batteries in trash or blue bins.",
+    "the_truth": "Universal wastes like batteries are illegal in the trash; City residents must use the HHW Transfer Facility or other approved options.",
+    "prep_steps": [
+      "Store in a safe container",
+      "Tape terminals (especially lithium/button types)",
+      "Make HHW appointment"
+    ],
+    "where_to_take": "City of San Diego HHW Transfer Facility (Miramar) by appointment",
+    "impact_note": "Proper handling prevents fires in collection trucks and facilities and avoids toxic releases.",
+    "last_verified": "2025-09-13",
+    "short_user_tip": "Never curbside—tape terminals and book HHW."
+  }
+]

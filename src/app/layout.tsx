@@ -30,16 +30,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="dark">
-        <main className={`w-full ${fontFamily.className} antialiased`}>
-          <Toaster />
+    <html lang="en" className={fontFamily.variable}>
+      <body className="dark font-sans antialiased">
+        <main className="w-full">
           <PillNav />
           {children}
         </main>
         <Toaster richColors closeButton />
-        {/* <Analytics />
-        <SpeedInsights /> */}
       </body>
     </html>
   );

@@ -32,11 +32,10 @@ function selectPlaces(provider: CuratedProvider, input: CuratedMatchInput): Plac
     return provider.places;
   }
   return [...provider.places]
-    .sort(
-      (a, b) =>
-        haversineDistance(lat, lng, a.lat, a.lng) - haversineDistance(lat, lng, b.lat, b.lng)
-    )
-    .slice(0, nearestLimit);
+    .map((p) => ({ place: p, dist: haversineDistance(lat, lng, p.lat, p.lng) }))
+    .sort((a, b) => a.dist - b.dist)
+    .slice(0, nearestLimit)
+    .map(({ place }) => place);
 }
 
 /**

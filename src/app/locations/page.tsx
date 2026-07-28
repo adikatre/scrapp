@@ -1,59 +1,37 @@
 "use client";
 
 import { APIProvider } from "@vis.gl/react-google-maps";
-import {
-  AlertCircle,
-  Camera,
-  ChevronDown,
-  ChevronUp,
-  Clock,
-  Compass,
-  Globe,
-  MapPin,
-  Navigation,
-  Phone
-} from "lucide-react";
+import { AlertCircle, Camera, MapPin } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import { CategoryTabs } from "@/components/locations/CategoryTabs";
+import { MapPanel } from "@/components/locations/MapPanel";
+import { PlaceCard } from "@/components/locations/PlaceCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  formatDistance,
-  haversineDistance,
-  readSavedLocationPrefs,
-  saveLocationPrefs
-} from "@/lib/geo";
+import { LocationSearchWidget, type LocationSelection } from "@/components/widgets/location-search";
+import { haversineDistance, readSavedLocationPrefs, saveLocationPrefs } from "@/lib/geo";
 import { getPlaceDetails, searchPlaces } from "@/lib/googlePlaces";
 import {
   getCategoryByKey,
   getCurbsideBinInfo,
-  getItemSubcategories,
+  isLocationCategoryKey,
   itemAffectsSearch,
-  LOCATION_CATEGORIES,
   type LocationCategoryKey
 } from "@/lib/locationCategories";
 import type { Place, PlaceDetails } from "@/lib/types";
-import { LocationMapWidget } from "@/components/widgets/location-map";
-import { LocationSearchWidget, type LocationSelection } from "@/components/widgets/location-search";
 
 function LocationsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialCategory = (searchParams.get("category") as LocationCategoryKey) || "recycle";
+  const rawCategory = searchParams.get("category");
+  const initialCategory: LocationCategoryKey =
+    rawCategory && isLocationCategoryKey(rawCategory) ? rawCategory : "recycle";
   const scannedItem = searchParams.get("item");
   const scannedQueries = useMemo(() => searchParams.getAll("q"), [searchParams]);
-  // Curbside bin the scan landed in (blue/green/gray), if any. Surfaces the
-  // "toss it at the curb" note. Special Drop-off and non-bins yield undefined.
   const curbsideBin = getCurbsideBinInfo(searchParams.get("bin"));
 
   const savedOnMount = useMemo(() => readSavedLocationPrefs(), []);
@@ -68,12 +46,12 @@ function LocationsPageContent() {
     lat: number;
     lng: number;
   } | null>(() =>
-    savedOnMount?.lat && savedOnMount?.lng ? { lat: savedOnMount.lat, lng: savedOnMount.lng } : null
+    savedOnMount?.lat != null && savedOnMount?.lng != null
+      ? { lat: savedOnMount.lat, lng: savedOnMount.lng }
+      : null
   );
   const [places, setPlaces] = useState<Place[]>([]);
   const [listFilter, setListFilter] = useState("");
-  // Starts true so the first paint shows skeletons instead of flashing the
-  // "no places found" empty state while geolocation + the first search resolve.
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
@@ -82,17 +60,19 @@ function LocationsPageContent() {
   const [expandedDetails, setExpandedDetails] = useState<Record<string, PlaceDetails>>({});
   const [loadingDetails, setLoadingDetails] = useState<Record<string, boolean>>({});
   const [isLocating, setIsLocating] = useState(false);
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  // Monotonic id so a slow, superseded search can't overwrite the results or
-  // loading state of a newer one (e.g. rapid category switches).
   const searchSeqRef = useRef(0);
+  const expandSeqRef = useRef(0);
   const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
+
+  const setCardRef = useCallback((id: string, el: HTMLDivElement | null) => {
+    cardRefs.current[id] = el;
+  }, []);
 
   const category = getCategoryByKey(activeCategory);
   const isSearchable = category?.searchable ?? true;
-  // Only show the curbside note while viewing the bin's own category; switching
-  // to another tab (e.g. a manual drop-off search) hides it.
   const showCurbsideNote = !!curbsideBin && activeCategory === curbsideBin.categoryKey;
   const CurbsideIcon = category?.icon;
 
@@ -115,8 +95,6 @@ function LocationsPageContent() {
       const lat = opts?.lat ?? userCoords?.lat;
       const lng = opts?.lng ?? userCoords?.lng;
 
-      // Scanner-provided queries are tied to the scanned item's category;
-      // switching tabs falls back to the plain category search.
       const itemQueries =
         activeCategory === initialCategory && scannedQueries.length > 0
           ? scannedQueries
@@ -131,7 +109,6 @@ function LocationsPageContent() {
         queries: itemQueries
       });
 
-      // A newer search started while this one was in flight — discard.
       if (seq !== searchSeqRef.current) return;
 
       let sorted = results;
@@ -172,9 +149,6 @@ function LocationsPageContent() {
     setActiveCategory(initialCategory);
   }, [initialCategory]);
 
-  // Keep the latest runSearch in a ref so the search effect below only fires
-  // on category/location-readiness changes — not on every keystroke in the
-  // location input (locationLabel is a runSearch dependency).
   const runSearchRef = useRef(runSearch);
   useEffect(() => {
     runSearchRef.current = runSearch;
@@ -196,8 +170,6 @@ function LocationsPageContent() {
 
         if (cancelled) return;
 
-        // "prompt" triggers the browser's permission dialog — without real
-        // coordinates the search can't be biased to truly nearby places.
         if (permission.state === "granted" || permission.state === "prompt") {
           navigator.geolocation.getCurrentPosition(
             (pos) => {
@@ -223,7 +195,7 @@ function LocationsPageContent() {
           return;
         }
       } catch {
-        // Permissions API unavailable — fall back to saved or manual location.
+        // Permissions API unavailable
       }
 
       setLocationReady(true);
@@ -241,8 +213,6 @@ function LocationsPageContent() {
     runSearchRef.current();
   }, [locationReady]);
 
-  // Sub-category picks route through the same URL params the scanner uses
-  // (?item drives the item-specific Places query), keeping one search path.
   const handleSelectSubcategory = (key: LocationCategoryKey, item: string) => {
     router.push(`/locations?category=${key}&item=${encodeURIComponent(item)}`);
   };
@@ -281,8 +251,6 @@ function LocationsPageContent() {
     );
   };
 
-  // Autocomplete suggestion picked: we have a real geocode, so distance
-  // sorting works the same as it does for device geolocation.
   const handleLocationSelect = (selection: LocationSelection) => {
     setGeoError(null);
     setUserCoords({ lat: selection.lat, lng: selection.lng });
@@ -294,9 +262,6 @@ function LocationsPageContent() {
     });
   };
 
-  // Enter pressed without picking a suggestion — geocode the typed text so
-  // distance sorting and location bias still work; only fall back to a plain
-  // text search if geocoding finds nothing.
   const handleManualSubmit = async (label: string) => {
     setGeoError(null);
 
@@ -318,7 +283,7 @@ function LocationsPageContent() {
           return;
         }
       } catch {
-        // Geocoder throws on ZERO_RESULTS — fall through to text search.
+        // Geocoder throws on ZERO_RESULTS
       }
     }
 
@@ -344,7 +309,6 @@ function LocationsPageContent() {
       return;
     }
 
-    // Curated entries carry their own details (phone); no Places lookup needed.
     if (place.curated) {
       setExpandedDetails((prev) => ({
         ...prev,
@@ -353,8 +317,12 @@ function LocationsPageContent() {
       return;
     }
 
+    const seq = ++expandSeqRef.current;
     setLoadingDetails((prev) => ({ ...prev, [place.id]: true }));
     const { details, error: detailsError } = await getPlaceDetails(place.id);
+
+    if (seq !== expandSeqRef.current) return;
+
     setLoadingDetails((prev) => ({ ...prev, [place.id]: false }));
 
     if (details) {
@@ -367,17 +335,11 @@ function LocationsPageContent() {
     }
   };
 
-  // Curated entries have no Google Place ID, so route directions by coordinates.
-  // Google Places entries pass the place ID, but Maps ignores destination_place_id
-  // unless a destination is also present, so send the name/address alongside it.
   const directionsUrl = (place: Place) =>
     place.curated
       ? `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`
       : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${place.name}, ${place.address}`)}&destination_place_id=${encodeURIComponent(place.id)}`;
 
-  // Mobile: normal document flow — map first at a fixed height, then the
-  // list; the page scrolls. Desktop (lg): the old app-like split view where
-  // the page is viewport-locked and only the results list scrolls.
   const content = (
     <div className="dark min-h-screen bg-background flex flex-col lg:flex-row lg:max-h-screen p-4 lg:p-6 gap-4 lg:gap-6">
       <Card className="w-full lg:w-1/3 lg:max-w-md flex flex-col border-border shadow-lg lg:max-h-[calc(100vh-3rem)]">
@@ -399,8 +361,6 @@ function LocationsPageContent() {
 
         <CardContent className="flex-grow flex flex-col gap-4 overflow-hidden">
           <div className="shrink-0">
-            {/* Not disabled while results load — typing must stay fluid even
-                mid-search; suggestions are debounced inside the component. */}
             <LocationSearchWidget
               value={locationLabel}
               onChange={setLocationLabel}
@@ -419,47 +379,11 @@ function LocationsPageContent() {
             </p>
           )}
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 shrink-0">
-            {LOCATION_CATEGORIES.map(({ key, label, icon: Icon }) => {
-              const subcategories = getItemSubcategories(key);
-              return (
-                <div key={key} className="flex">
-                  <Button
-                    variant={activeCategory === key ? "default" : "outline"}
-                    onClick={() => setActiveCategory(key)}
-                    className={`flex-1 min-w-0 items-center gap-1.5 text-xs px-2 ${
-                      subcategories.length > 0 ? "rounded-r-none" : ""
-                    }`}
-                    size="sm">
-                    <Icon className="h-3.5 w-3.5 shrink-0" />
-                    {label}
-                  </Button>
-                  {subcategories.length > 0 && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-l-none border-l-0 px-1.5"
-                          aria-label={`${label} sub-categories`}>
-                          <ChevronDown className="h-3.5 w-3.5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {subcategories.map((sub) => (
-                          <DropdownMenuItem
-                            key={sub.item}
-                            onSelect={() => handleSelectSubcategory(key, sub.item)}>
-                            {sub.label}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <CategoryTabs
+            activeCategory={activeCategory}
+            onSelectCategory={setActiveCategory}
+            onSelectSubcategory={handleSelectSubcategory}
+          />
 
           {showCurbsideNote && curbsideBin && (
             <Card className={`p-4 shrink-0 border ${curbsideBin.accent}`}>
@@ -542,176 +466,36 @@ function LocationsPageContent() {
                 )}
 
                 {!isLoading &&
-                  filteredPlaces.map((place) => {
-                    const details = expandedDetails[place.id];
-                    const isExpanded = !!details;
-                    const isSelected = selectedPlaceId === place.id;
-
-                    return (
-                      <Card
-                        key={place.id}
-                        ref={(el) => {
-                          cardRefs.current[place.id] = el;
-                        }}
-                        className={`p-4 bg-muted/50 hover:bg-muted/80 transition-colors cursor-pointer ${
-                          isSelected ? "ring-2 ring-primary" : ""
-                        }`}
-                        onClick={() => setSelectedPlaceId(place.id)}>
-                        <div className="flex items-start gap-3">
-                          {/* Fixed-size thumbnail with lazy loading: on slow
-                              connections the card renders immediately and the
-                              photo fills in without shifting layout. */}
-                          {place.photoName && (
-                            <img
-                              src={`/api/place-photo?name=${encodeURIComponent(place.photoName)}&w=128`}
-                              alt=""
-                              loading="lazy"
-                              decoding="async"
-                              className="h-14 w-14 shrink-0 rounded-md bg-muted object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = "none";
-                              }}
-                            />
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-start justify-between gap-2">
-                              <h3 className="font-semibold text-foreground">{place.name}</h3>
-                              {place.distanceMiles != null && (
-                                <Badge variant="secondary" className="shrink-0">
-                                  {formatDistance(place.distanceMiles)}
-                                </Badge>
-                              )}
-                            </div>
-
-                            <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-                              <Compass className="h-4 w-4 shrink-0" />
-                              {place.address}
-                            </p>
-                          </div>
-                        </div>
-
-                        {place.note && (
-                          <p className="text-sm text-muted-foreground flex items-start gap-2 mt-1">
-                            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
-                            {place.note}
-                          </p>
-                        )}
-
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            asChild
-                            onClick={(e) => e.stopPropagation()}>
-                            <a
-                              href={directionsUrl(place)}
-                              target="_blank"
-                              rel="noreferrer noopener">
-                              <Navigation className="h-3.5 w-3.5 mr-1" />
-                              Directions
-                            </a>
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleExpandPlace(place);
-                            }}
-                            disabled={loadingDetails[place.id]}>
-                            {loadingDetails[place.id] ? (
-                              "Loading..."
-                            ) : isExpanded ? (
-                              <>
-                                <ChevronUp className="h-3.5 w-3.5 mr-1" />
-                                Less
-                              </>
-                            ) : (
-                              <>
-                                <ChevronDown className="h-3.5 w-3.5 mr-1" />
-                                Details
-                              </>
-                            )}
-                          </Button>
-                        </div>
-
-                        {isExpanded && details && (
-                          <div className="mt-3 pt-3 border-t border-border/50 space-y-2 text-sm">
-                            {details.openNow != null && (
-                              <p className="flex items-center gap-2">
-                                <Clock className="h-4 w-4" />
-                                {details.openNow ? (
-                                  <span className="text-green-500">Open now</span>
-                                ) : (
-                                  <span className="text-muted-foreground">Closed now</span>
-                                )}
-                              </p>
-                            )}
-                            {details.phone && (
-                              <p className="flex items-center gap-2">
-                                <Phone className="h-4 w-4" />
-                                <a href={`tel:${details.phone}`} className="text-primary underline">
-                                  {details.phone}
-                                </a>
-                              </p>
-                            )}
-                            {details.website && (
-                              <p className="flex items-center gap-2">
-                                <Globe className="h-4 w-4" />
-                                <a
-                                  href={details.website}
-                                  target="_blank"
-                                  rel="noreferrer noopener"
-                                  className="text-primary underline truncate">
-                                  Website
-                                </a>
-                              </p>
-                            )}
-                            {details.weekdayDescriptions &&
-                              details.weekdayDescriptions.length > 0 && (
-                                <ul className="text-muted-foreground space-y-0.5">
-                                  {details.weekdayDescriptions.map((line) => (
-                                    <li key={line}>{line}</li>
-                                  ))}
-                                </ul>
-                              )}
-                          </div>
-                        )}
-                      </Card>
-                    );
-                  })}
+                  filteredPlaces.map((place) => (
+                    <div key={place.id} ref={(el) => setCardRef(place.id, el)}>
+                      <PlaceCard
+                        place={place}
+                        isSelected={selectedPlaceId === place.id}
+                        isExpanded={!!expandedDetails[place.id]}
+                        details={expandedDetails[place.id]}
+                        isLoadingDetails={loadingDetails[place.id]}
+                        hasFailedImage={failedImages.has(place.photoName ?? "")}
+                        onSelect={() => setSelectedPlaceId(place.id)}
+                        onExpand={() => handleExpandPlace(place)}
+                        onImageError={(name) => setFailedImages((prev) => new Set(prev).add(name))}
+                        directionsUrl={directionsUrl}
+                      />
+                    </div>
+                  ))}
               </div>
             </>
           )}
         </CardContent>
       </Card>
 
-      <div className="order-first lg:order-last h-[45vh] min-h-[280px] shrink-0 lg:h-auto lg:min-h-0 lg:shrink lg:flex-grow rounded-lg overflow-hidden relative shadow-lg">
-        {!mapsApiKey ? (
-          <div className="flex h-full min-h-[300px] items-center justify-center rounded-lg bg-muted/30 p-6 text-center text-sm text-muted-foreground">
-            Add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to .env.local to enable the interactive map and
-            location search.
-          </div>
-        ) : isSearchable ? (
-          <LocationMapWidget
-            places={filteredPlaces}
-            userLat={userCoords?.lat}
-            userLng={userCoords?.lng}
-            selectedPlaceId={selectedPlaceId}
-            onSelectPlace={handleSelectPlace}
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center bg-muted/20 p-8 text-center">
-            <div>
-              <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No map needed for this disposal type.</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Try a searchable category like Recycling, E-Waste, or Hazardous Waste.
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
+      <MapPanel
+        places={filteredPlaces}
+        userLat={userCoords?.lat}
+        userLng={userCoords?.lng}
+        selectedPlaceId={selectedPlaceId}
+        onSelectPlace={handleSelectPlace}
+        isSearchable={isSearchable}
+      />
     </div>
   );
 

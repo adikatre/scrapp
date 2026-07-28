@@ -7,47 +7,13 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Returns CSS class names for badge styling based on a value compared to cutoff thresholds.
- *
- * @param value - The numeric value to evaluate against the cutoffs
- * @param meetingCutoff - The upper threshold value that indicates "meets requirements"
- * @param approachingCutoff - The offset from cutoff that defines the middle threshold range
- * @returns CSS class string with background and text color classes:
- *   - Green classes when value >= cutoff (meets requirements)
- *   - Amber classes when value >= (cutoff - middleCutoff) (approaching requirements)
- *   - Red destructive classes when value < (cutoff - middleCutoff) (below requirements)
- *
- * @example
- * ```typescript
- * // Value meets requirements (>=100)
- * getBadgeStatusStyles(120, 100, 20); // Returns "bg-green-500/20 text-green-500"
- *
- * // Value is approaching requirements (>=80 but <100)
- * getBadgeStatusStyles(85, 100, 20); // Returns "bg-amber-500/20 text-amber-500"
- *
- * // Value is below requirements (<80)
- * getBadgeStatusStyles(70, 100, 20); // Returns "bg-destructive/20 text-destructive"
- * ```
+ * Converts a data URL to a File object.
+ * @param dataUrl The data URL to convert.
+ * @param filename The name of the file.
+ * @returns A File object or null if the conversion fails.
+ * 
+ * ex. dataURLtoFile("data:image/png;base64,<base64string>", "test.png");
  */
-export function getBadgeStatusStyles(
-  value: number,
-  meetingCutoff: number,
-  approachingCutoff: number
-) {
-  const VALUE_TO_MEET = meetingCutoff;
-  const VALUE_TO_APPROACH = approachingCutoff;
-
-  let className = "bg-destructive/20 text-destructive";
-
-  if (value >= VALUE_TO_MEET) {
-    className = "bg-green-500/20 text-green-500";
-  } else if (value >= VALUE_TO_APPROACH) {
-    className = "bg-amber-500/20 text-amber-500";
-  }
-
-  return className;
-}
-
 export function dataURLtoFile(dataUrl: string, filename: string) {
   try {
     const [meta, content] = dataUrl.split(",");
@@ -83,7 +49,7 @@ export function summarizePrediction(p: PredictionResult) {
 
   let msg = "Found: ";
 
-  p.objects.forEach((object) => (msg += `${object}, `));
+  msg += p.objects.join(", ");
   msg += "\n\n";
 
   const detections = p.detections;

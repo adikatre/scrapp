@@ -5,7 +5,7 @@ import {
   checkScanRateLimit,
   getClientIdentifier,
   validateImageFile
-} from "@/lib/rate-limit";
+} from "@/lib/rateLimit";
 
 // Mock Request object for getClientIdentifier tests
 const createMockRequest = (headers: Record<string, string>) => {

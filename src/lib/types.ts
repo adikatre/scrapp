@@ -1,14 +1,24 @@
+export type PredictionRoute =
+  | "Recycle"
+  | "Compost"
+  | "E-Waste"
+  | "Hazardous Waste"
+  | "Bulky Items (Donate)"
+  | "Landfill / Donate / Check rules"
+  | "Single-Use Items"
+  | "General Trash"
+  | "City Infrastructure"
+  | "Living Things";
+
 export type PredictionRoutes = string;
 
 export type ClassifiedItem = {
   name: string;
   material: string;
   route: PredictionRoutes;
-  /** San Diego household destination, e.g. "Blue Bin (Recycling)" */
   bin?: string;
   confidence: number;
   caveats: string;
-  /** LLM-suggested Places text queries for this item (no location wording) */
   search_queries?: string[];
 };
 
@@ -71,15 +81,17 @@ export type SavedLocationPrefs = {
   category: string;
 };
 
-export type ScanTicket = {
-  id: string;
+export type ScanTicketPayload = {
   image: string | null;
   note?: string;
   guidance: string;
   disposalRoute: string;
-  /** San Diego household destination, e.g. "Blue Bin (Recycling)" */
   bin?: string;
   itemName: string;
   searchQueries?: string[];
-  timestamp: Date;
 };
+
+export type ScanTicket = {
+  id: string;
+  timestamp: Date;
+} & ScanTicketPayload;
