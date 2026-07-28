@@ -1,28 +1,22 @@
-// To make this a client component, we add this directive at the top.
-// This allows us to use React hooks like useState, useEffect, and useRef.
 "use client";
 
 import { ArrowDown, ArrowRight, Camera, Github, Globe, Recycle, Trash2 } from "lucide-react";
 import Link from "next/link";
-// Import necessary React hooks and components.
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { recyclables } from "@/data/recyclables";
 import { cn } from "@/lib/utils";
 
-// This is a custom hook to detect if an element is visible on the screen.
-// It uses the Intersection Observer API for performance.
 const useOnScreen = (options: IntersectionObserverInit) => {
   const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
-      // Set visibility state based on whether the element is intersecting the viewport.
       if (entry.isIntersecting) {
         setIsVisible(true);
-        // We can unobserve after it becomes visible to prevent re-triggering.
         if (ref.current) {
           observer.unobserve(ref.current);
         }
@@ -44,47 +38,51 @@ const useOnScreen = (options: IntersectionObserverInit) => {
   return [ref, isVisible] as const;
 };
 
-// A component for an animated statistic card.
-// It uses the useOnScreen hook to trigger a count-up animation.
 const AnimatedStatistic = ({
   icon: Icon,
   value,
   label,
-  suffix = "",
-  increment = 1
+  suffix = ""
 }: {
   icon: React.ElementType;
   value: number;
   label: string;
   suffix?: string;
-  increment?: number;
 }) => {
   const [count, setCount] = useState(0);
   const [ref, isVisible] = useOnScreen({ threshold: 0.2 });
 
   useEffect(() => {
-    if (isVisible) {
-      let start = 0;
-      const end = value;
-      if (start === end) return;
-
-      // Adjust duration based on value and increment speed
-      let duration = 2000 / (end / increment);
-      if (end > 1000) duration = 0.1;
-      if (end < 100) duration = 25;
-
-      const timer = setInterval(() => {
-        start += increment;
-        if (start > end) start = end; // Prevent overshoot
-        setCount(start);
-        if (start === end) {
-          clearInterval(timer);
-        }
-      }, duration);
-
-      return () => clearInterval(timer);
+    if (!isVisible) return;
+    if (value <= 0) {
+      setCount(0);
+      return;
     }
-  }, [isVisible, value, increment]);
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) {
+      setCount(value);
+      return;
+    }
+
+    const durationMs = 1500;
+    const start = performance.now();
+    let frame = 0;
+
+    const step = (now: number) => {
+      const elapsed = now - start;
+      const progress = Math.min(1, elapsed / durationMs);
+      const eased = 1 - (1 - progress) ** 3;
+      const current = Math.min(value, Math.round(eased * value));
+      setCount(current);
+      if (progress < 1) {
+        frame = requestAnimationFrame(step);
+      }
+    };
+
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [isVisible, value]);
 
   return (
     <div
@@ -105,23 +103,18 @@ const AnimatedStatistic = ({
   );
 };
 
-// The main component for your home page.
 export default function HomePage() {
   const [mainCardRef, isMainCardVisible] = useOnScreen({ threshold: 0.1 });
   const [recyclablesRef, isRecyclablesVisible] = useOnScreen({ threshold: 0.15 });
-  // Create a ref for the statistics section
   const statsSectionRef = useRef<HTMLElement>(null);
 
-  // Function to handle smooth scrolling
   const handleScrollDown = () => {
     statsSectionRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
     <div className="dark min-h-screen bg-background text-foreground">
-      {/* Hero Section */}
       <section className="flex flex-col items-center justify-center h-screen p-6 text-center relative overflow-hidden">
-        {/* Video Background Container */}
         <div className="absolute top-0 left-0 w-full h-full z-0 video-container">
           <video autoPlay loop muted playsInline className="w-full h-full object-cover">
             <source src="/hero-video-loop-2k.mp4" type="video/mp4" />
@@ -129,7 +122,6 @@ export default function HomePage() {
           </video>
         </div>
 
-        {/* Hero Content Wrapper */}
         <div className="relative z-10 flex flex-col items-center justify-center w-full">
           <div
             ref={mainCardRef}
@@ -160,7 +152,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Scroll Down Arrow */}
         <button
           type="button"
           onClick={handleScrollDown}
@@ -170,7 +161,6 @@ export default function HomePage() {
         </button>
       </section>
 
-      {/* Statistics Section */}
       <section ref={statsSectionRef} className="py-20 bg-muted/20">
         <div className="container mx-auto px-6">
           <h2 className="text-3xl font-bold text-center mb-4">Why It Matters</h2>
@@ -184,28 +174,24 @@ export default function HomePage() {
               value={79}
               suffix="%"
               label="of plastic waste ends up in landfills or nature because it's not recycled."
-              increment={1}
             />
             <AnimatedStatistic
               icon={Trash2}
               value={220}
               suffix="M"
               label="tons of plastic waste will be generated this year alone."
-              increment={5}
             />
             <AnimatedStatistic
               icon={Globe}
               value={82}
               suffix="M"
               label="tons of e-waste are projected for 2030, a 32% increase from 2022."
-              increment={2}
             />
           </div>
         </div>
       </section>
 
       <section className="py-20 bg-muted/67">
-        {/* Fade-in animation for "lesser known recyclables" section */}
         <div
           ref={recyclablesRef}
           className={cn(
@@ -218,187 +204,38 @@ export default function HomePage() {
             informed decisions about recycling and waste disposal.
           </p>
           <div className="container mx-auto px-6">
-            {/*Convert JSON data to a  Ad</div>here to styling in the previous div, and follow UI best practices and good strategies to create sections for each of the six records. The UI should look very appealing and look quite good to users.*/}
-            {/* 3x2 Educational Cards – hardcoded data + UI */}
-            {(() => {
-              type Item = {
-                item_name: string;
-                category:
-                  | "Curbside Recyclable"
-                  | "Curbside Recyclable + Organics"
-                  | "Store Drop-Off"
-                  | "Scrap/Buy-Back"
-                  | "Household Hazardous Waste";
-                misconception_summary: string;
-                the_truth: string;
-                prep_steps: string[];
-                where_to_take: string;
-                impact_note: string;
-                last_verified: string;
-                short_user_tip: string;
-              };
-
-              const items: Item[] = [
-                {
-                  item_name: "Empty aerosol cans (non-hazardous contents)",
-                  category: "Curbside Recyclable",
-                  misconception_summary:
-                    "People often toss aerosol cans in the trash or avoid recycling them altogether.",
-                  the_truth:
-                    "In San Diego County, EMPTY aerosol cans are accepted in curbside recycling as metal; non-empty or hazardous-product cans are HHW.",
-                  prep_steps: [
-                    "Use up contents completely until no spray or hiss",
-                    "Do NOT puncture",
-                    "Place loose in blue bin (not bagged)"
-                  ],
-                  where_to_take:
-                    "If not empty or hazardous: City of San Diego HHW Transfer Facility (appointment required)",
-                  impact_note:
-                    "Recycling metal saves significant energy and reduces the need for virgin ore.",
-                  last_verified: "2025-09-13",
-                  short_user_tip: "If it's truly empty, recycle it with metals; if not, book HHW."
-                },
-                {
-                  item_name: "Plastic film & bags (grocery, bread, bubble wrap)",
-                  category: "Store Drop-Off",
-                  misconception_summary:
-                    "Many residents put film plastic in the blue bin, where it tangles sorting machinery.",
-                  the_truth:
-                    "Not accepted curbside in San Diego—take clean/dry film plastic to participating retail store drop-off locations.",
-                  prep_steps: [
-                    "Remove receipts/labels",
-                    "Ensure clean and dry",
-                    "Stuff smaller bags into one bag (bag-your-bags)"
-                  ],
-                  where_to_take:
-                    "Participating retailers listed via WasteFreeSD or PlasticFilmRecycling.org",
-                  impact_note:
-                    "Keeping film out of curbside prevents MRF jams and improves recycling quality.",
-                  last_verified: "2025-09-13",
-                  short_user_tip: "Never in blue bin—bring clean, dry bags to store drop-off."
-                },
-                {
-                  item_name: "Pizza boxes (clean lid vs. greasy bottom)",
-                  category: "Curbside Recyclable + Organics",
-                  misconception_summary:
-                    "People think all pizza boxes are trash because of grease.",
-                  the_truth:
-                    "Recycle the clean cardboard portion; food-soiled paper belongs in your green organics bin.",
-                  prep_steps: [
-                    "Tear off clean lid for blue bin",
-                    "Put greasy bottom in green organics",
-                    "Remove liners/food"
-                  ],
-                  where_to_take: "Curbside (blue for clean cardboard; green for food-soiled paper)",
-                  impact_note:
-                    "Diverts cardboard to recycling and food-soiled paper to compost, reducing landfill methane.",
-                  last_verified: "2025-09-13",
-                  short_user_tip: "Clean lid = blue; greasy bottom = green."
-                },
-                {
-                  item_name: "Rigid plastic plant pots, buckets & toys",
-                  category: "Curbside Recyclable",
-                  misconception_summary:
-                    "Residents often trash bulky rigid plastics like pots and buckets.",
-                  the_truth:
-                    "The City accepts rigid plastics—including clean pots, buckets, trays and toys—in curbside recycling.",
-                  prep_steps: [
-                    "Empty soil/debris",
-                    "Quickly rinse if needed",
-                    "Place items empty, dry, and loose in blue bin"
-                  ],
-                  where_to_take: "Curbside blue bin",
-                  impact_note:
-                    "Recycling rigid plastics reduces landfill volume and supports recycled resin markets.",
-                  last_verified: "2025-09-13",
-                  short_user_tip: "Rigid, empty & dry plastic pots and buckets go in blue."
-                },
-                {
-                  item_name: "Scrap metal & metal clothing hangers",
-                  category: "Scrap/Buy-Back",
-                  misconception_summary:
-                    "Many try to toss hangers/scrap metal in the blue bin or trash them.",
-                  the_truth:
-                    "Scrap metal is NOT accepted in curbside recycling; take to a scrap recycler or find locations via WasteFreeSD.",
-                  prep_steps: [
-                    "Remove non-metal parts",
-                    "Bundle small pieces safely",
-                    "Transport to local recycler"
-                  ],
-                  where_to_take: "Scrap metal recycler; search WasteFreeSD.org for locations",
-                  impact_note:
-                    "Recycling metal recovers high-value material and prevents equipment jams at MRFs.",
-                  last_verified: "2025-09-13",
-                  short_user_tip:
-                    "Not blue-bin—take metal hangers/scrap to a recycler (see WasteFreeSD)."
-                },
-                {
-                  item_name: "Household batteries (AA/AAA, button, lithium-ion)",
-                  category: "Household Hazardous Waste",
-                  misconception_summary: "People still put batteries in trash or blue bins.",
-                  the_truth:
-                    "Universal wastes like batteries are illegal in the trash; City residents must use the HHW Transfer Facility or other approved options.",
-                  prep_steps: [
-                    "Store in a safe container",
-                    "Tape terminals (especially lithium/button types)",
-                    "Make HHW appointment"
-                  ],
-                  where_to_take: "City of San Diego HHW Transfer Facility (Miramar) by appointment",
-                  impact_note:
-                    "Proper handling prevents fires in collection trucks and facilities and avoids toxic releases.",
-                  last_verified: "2025-09-13",
-                  short_user_tip: "Never curbside—tape terminals and book HHW."
-                }
-              ];
-
-              return (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-20">
-                  {items.map((it) => (
-                    <Card
-                      key={it.item_name}
-                      className="group relative overflow-hidden border-none bg-card/70 backdrop-blur-xl shadow-xl transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl">
-                      <CardHeader className="relative">
-                        <div className="flex items-start justify-between gap-4">
-                          <CardTitle className="text-xl font-semibold leading-tight">
-                            {it.item_name}
-                          </CardTitle>
-                          {/* {categoryPill(it.category)} */}
-                        </div>
-                        {/* <p className="text-sm text-muted-foreground mt-2">{it.misconception_summary}</p> */}
-                      </CardHeader>
-                      <CardContent className="relative space-y-4">
-                        {/* <div className="rounded-lg border border-border/50 bg-background/60 p-3">
-                              <p className="text-sm"><span className="font-medium">The truth:</span> {it.the_truth}</p>
-                            </div> */}
-
-                        <div>
-                          <p className="text-base font-medium">Prep steps</p>
-                          <ul className="mt-2 list-disc pl-5 space-y-1 text-base text-foreground/90">
-                            {it.prep_steps.map((s) => (
-                              <li key={s}>{s}</li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        <div className="rounded-md bg-muted/40 p-4 text-base flex items-start gap-2">
-                          <div>
-                            <p className="">{it.impact_note}</p>
-                          </div>
-                        </div>
-
-                        {/* <div className="pt-1">
-                              <p className="text-sm font-medium">Quick tip</p>
-                              <p className="text-sm text-muted-foreground">{it.short_user_tip}</p>
-                            </div> */}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              );
-            })()}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-20">
+              {recyclables.map((it) => (
+                <Card
+                  key={it.item_name}
+                  className="group relative overflow-hidden border-none bg-card/70 backdrop-blur-xl shadow-xl transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl">
+                  <CardHeader className="relative">
+                    <div className="flex items-start justify-between gap-4">
+                      <CardTitle className="text-xl font-semibold leading-tight">
+                        {it.item_name}
+                      </CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="relative space-y-4">
+                    <div>
+                      <p className="text-base font-medium">Prep steps</p>
+                      <ul className="mt-2 list-disc pl-5 space-y-1 text-base text-foreground/90">
+                        {it.prep_steps.map((s) => (
+                          <li key={s}>{s}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="rounded-md bg-muted/40 p-4 text-base flex items-start gap-2">
+                      <div>
+                        <p>{it.impact_note}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
 
-          {/* Add a call-to-action at the bottom */}
           <div className="text-center pt-8">
             <Card className="bg-primary/5 border-primary/20 max-w-2xl mx-auto">
               <CardContent className="pt-6">
@@ -421,7 +258,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="py-8 text-center text-muted-foreground text-sm">
         <p>Making waste disposal less confusing, one photo at a time.</p>
         <div className="mt-4 flex items-center justify-center gap-4">

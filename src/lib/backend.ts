@@ -1,6 +1,6 @@
 "use server";
 
-import { checkScanRateLimit, validateImageFile } from "./rate-limit";
+import { checkScanRateLimit, validateImageFile } from "./rateLimit";
 import { BaseStates } from "./states";
 import type { PredictionResult } from "./types";
 
@@ -11,65 +11,40 @@ if (!BACKEND_URL) throw new Error("[backend.ts] backend url not defined");
 if (!BACKEND_API_KEY) throw new Error("[backend.ts] backend api key not defined");
 
 type PredictReturnType =
-  | [BaseStates.ERROR, null, Record<string, string>?]
-  | [BaseStates.SUCCESS, PredictionResult, Record<string, string>?];
+  | [typeof BaseStates.ERROR, null, Record<string, string>?]
+  | [typeof BaseStates.SUCCESS, PredictionResult, Record<string, string>?];
 
-/**
- * Extract client identifier from form data
- * The client component should include this in the FormData
- */
+function rateLimitHeaders(rl: { limit: number; remaining: number; reset: number }) {
+  return {
+    "X-RateLimit-Limit": rl.limit.toString(),
+    "X-RateLimit-Remaining": rl.remaining.toString(),
+    "X-RateLimit-Reset": Math.ceil(rl.reset / 1000).toString()
+  };
+}
+
 function getClientId(formData: FormData): string {
-  const clientId = formData.get("clientId") as string | null;
-  if (clientId) return clientId;
-
-  // Fallback: use a generic identifier
-  // In production, you'd want to use a proper fingerprint
+  const clientId = formData.get("clientId");
+  if (typeof clientId === "string" && clientId) return clientId;
   return "anonymous";
 }
 
 export async function predict(formData: FormData): Promise<PredictReturnType> {
-  // Rate limiting
   const clientId = getClientId(formData);
-  const rateLimitResult = await checkScanRateLimit(clientId);
+  const rl = await checkScanRateLimit(clientId);
 
-  if (!rateLimitResult.success) {
-    return [
-      BaseStates.ERROR,
-      null,
-      {
-        "X-RateLimit-Limit": rateLimitResult.limit.toString(),
-        "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
-        "X-RateLimit-Reset": Math.ceil(rateLimitResult.reset / 1000).toString(),
-        "Retry-After": Math.ceil((rateLimitResult.reset - Date.now()) / 1000).toString()
-      }
-    ];
+  if (!rl.success) {
+    const retryAfter = Math.max(0, Math.ceil((rl.reset - Date.now()) / 1000)).toString();
+    return [BaseStates.ERROR, null, { ...rateLimitHeaders(rl), "Retry-After": retryAfter }];
   }
 
-  // File validation
-  const file = formData.get("file") as File | null;
-  if (!file) {
-    return [
-      BaseStates.ERROR,
-      null,
-      {
-        "X-RateLimit-Limit": rateLimitResult.limit.toString(),
-        "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
-        "X-RateLimit-Reset": Math.ceil(rateLimitResult.reset / 1000).toString()
-      }
-    ];
+  const file = formData.get("file");
+  if (!(file instanceof File)) {
+    return [BaseStates.ERROR, null, rateLimitHeaders(rl)];
   }
 
   const validationError = validateImageFile(file);
   if (validationError) {
-    return [
-      BaseStates.ERROR,
-      null,
-      {
-        "X-RateLimit-Limit": rateLimitResult.limit.toString(),
-        "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
-        "X-RateLimit-Reset": Math.ceil(rateLimitResult.reset / 1000).toString()
-      }
-    ];
+    return [BaseStates.ERROR, null, rateLimitHeaders(rl)];
   }
 
   const url = new URL(BACKEND_URL);
@@ -78,43 +53,17 @@ export async function predict(formData: FormData): Promise<PredictReturnType> {
   try {
     const res = await fetch(url, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${BACKEND_API_KEY}`
-      },
+      headers: { Authorization: `Bearer ${BACKEND_API_KEY}` },
       body: formData
     });
 
     if (!res.ok) {
-      return [
-        BaseStates.ERROR,
-        null,
-        {
-          "X-RateLimit-Limit": rateLimitResult.limit.toString(),
-          "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
-          "X-RateLimit-Reset": Math.ceil(rateLimitResult.reset / 1000).toString()
-        }
-      ];
+      return [BaseStates.ERROR, null, rateLimitHeaders(rl)];
     }
 
     const data = (await res.json()) as PredictionResult;
-    return [
-      BaseStates.SUCCESS,
-      data,
-      {
-        "X-RateLimit-Limit": rateLimitResult.limit.toString(),
-        "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
-        "X-RateLimit-Reset": Math.ceil(rateLimitResult.reset / 1000).toString()
-      }
-    ];
-  } catch (_e) {
-    return [
-      BaseStates.ERROR,
-      null,
-      {
-        "X-RateLimit-Limit": rateLimitResult.limit.toString(),
-        "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
-        "X-RateLimit-Reset": Math.ceil(rateLimitResult.reset / 1000).toString()
-      }
-    ];
+    return [BaseStates.SUCCESS, data, rateLimitHeaders(rl)];
+  } catch {
+    return [BaseStates.ERROR, null, rateLimitHeaders(rl)];
   }
 }

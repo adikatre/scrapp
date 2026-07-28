@@ -12,6 +12,15 @@ const LINKS = [
   { href: "/locations", label: "Locations", icon: MapPin }
 ] as const;
 
+function isActiveLink(pathname: string, href: string): boolean {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function getActiveHref(pathname: string): string {
+  return LINKS.find((link) => isActiveLink(pathname, link.href))?.href ?? LINKS[0].href;
+}
+
 type IndicatorRect = { left: number; top: number; width: number; height: number };
 
 export function PillNav() {
@@ -23,7 +32,7 @@ export function PillNav() {
 
   useLayoutEffect(() => {
     const measure = () => {
-      const activeHref = LINKS.find((link) => link.href === pathname)?.href ?? LINKS[0].href;
+      const activeHref = getActiveHref(pathname);
       const nav = navRef.current;
       const el = linkRefs.current.get(activeHref);
       if (!nav || !el) return;
@@ -36,8 +45,6 @@ export function PillNav() {
         width: elRect.width,
         height: elRect.height
       });
-      // Defer enabling the transition by a frame so the very first render
-      // (before we know the real position) never animates from the corner.
       requestAnimationFrame(() => setReady(true));
     };
 
@@ -67,7 +74,7 @@ export function PillNav() {
         />
       )}
       {LINKS.map(({ href, label, icon: Icon }) => {
-        const isActive = pathname === href;
+        const isActive = isActiveLink(pathname, href);
         return (
           <Link
             key={href}
@@ -82,7 +89,6 @@ export function PillNav() {
               isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
             )}>
             <Icon className="h-4 w-4" />
-            {/* On small screens only the active label shows, keeping the pill compact */}
             <span className={cn(!isActive && "hidden sm:inline")}>{label}</span>
           </Link>
         );
