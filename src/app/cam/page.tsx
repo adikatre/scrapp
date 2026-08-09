@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import useMediaQuery from "@/hooks/useMediaQuery";
 import { ScanView } from "@/components/ScanView";
+import useMediaQuery from "@/hooks/useMediaQuery";
 import type { ScanTicket, ScanTicketPayload } from "@/lib/types";
 
 const SCAN_HISTORY_STORAGE_KEY = "scrapp-scan-history";

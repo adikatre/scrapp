@@ -14,3 +14,7 @@
   - some sort of gamification
 
 - find some way to not lose money if we end up continuing <---- big one eh :))
+
+
+notes:
+  - backend.ts

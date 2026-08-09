@@ -16,6 +16,8 @@ serve-tailscale.ps1
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
 
 # next.js
 /.next/

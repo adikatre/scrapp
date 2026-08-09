@@ -41,9 +41,6 @@ export const env = createEnv({
     NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN
   },
-
-  skipValidation: process.env.SKIP_ENV_VALIDATION === "true",
-
   // TypeScript: enable type-safe environment variable access
   // This makes process.env.GOOGLE_PLACES_API_KEY available with proper types
   emptyStringAsUndefined: true

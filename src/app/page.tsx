@@ -1,282 +1,320 @@
-"use client";
-
-import { ArrowDown, ArrowRight, Camera, Github, Globe, Recycle, Trash2 } from "lucide-react";
+import {
+  ArrowRight,
+  BatteryCharging,
+  CircleCheck,
+  Github,
+  MapPin,
+  Recycle,
+  ScanLine,
+  ShieldCheck,
+  Trash2
+} from "lucide-react";
 import Link from "next/link";
-import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import { LandingScanDemo } from "@/components/LandingScanDemo";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { recyclables } from "@/data/recyclables";
-import { cn } from "@/lib/utils";
 
-const useOnScreen = (options: IntersectionObserverInit) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
+const journey = [
+  { eyebrow: "01 · Photo", title: "Show the item", detail: "Use the camera or upload a photo." },
+  {
+    eyebrow: "02 · Local rule",
+    title: "Match San Diego guidance",
+    detail: "Translate the result into a local disposal route."
+  },
+  {
+    eyebrow: "03 · Exact answer",
+    title: "See the right bin",
+    detail: "Blue, green, gray, or a special drop-off route."
+  },
+  {
+    eyebrow: "04 · Handoff",
+    title: "Find the destination",
+    detail: "Open nearby options only when a trip is actually needed."
+  }
+];
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setIsVisible(true);
-        if (ref.current) {
-          observer.unobserve(ref.current);
-        }
-      }
-    }, options);
-
-    const currentRef = ref.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
-
-    return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
-    };
-  }, [options]);
-
-  return [ref, isVisible] as const;
-};
-
-const AnimatedStatistic = ({
-  icon: Icon,
-  value,
-  label,
-  suffix = ""
-}: {
-  icon: React.ElementType;
-  value: number;
-  label: string;
-  suffix?: string;
-}) => {
-  const [count, setCount] = useState(0);
-  const [ref, isVisible] = useOnScreen({ threshold: 0.2 });
-
-  useEffect(() => {
-    if (!isVisible) return;
-    if (value <= 0) {
-      setCount(0);
-      return;
-    }
-
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (prefersReducedMotion) {
-      setCount(value);
-      return;
-    }
-
-    const durationMs = 1500;
-    const start = performance.now();
-    let frame = 0;
-
-    const step = (now: number) => {
-      const elapsed = now - start;
-      const progress = Math.min(1, elapsed / durationMs);
-      const eased = 1 - (1 - progress) ** 3;
-      const current = Math.min(value, Math.round(eased * value));
-      setCount(current);
-      if (progress < 1) {
-        frame = requestAnimationFrame(step);
-      }
-    };
-
-    frame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frame);
-  }, [isVisible, value]);
-
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        "transform transition-all duration-1000 ease-out",
-        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-      )}>
-      <Card className="bg-card/50 text-center p-6 h-full">
-        <Icon className="mx-auto h-12 w-12 text-primary mb-4" />
-        <p className="text-4xl font-bold text-foreground">
-          {count.toLocaleString()}
-          {suffix}
-        </p>
-        <p className="text-muted-foreground mt-2">{label}</p>
-      </Card>
-    </div>
-  );
-};
+const curbside = [
+  {
+    color: "blue",
+    label: "Blue bin",
+    title: "Clean recyclables",
+    copy: "Paper, cardboard, metal cans, glass bottles, and accepted rigid plastics."
+  },
+  {
+    color: "green",
+    label: "Green bin",
+    title: "Food and yard organics",
+    copy: "Food scraps, food-soiled paper, and yard trimmings accepted by the local program."
+  },
+  {
+    color: "gray",
+    label: "Gray bin",
+    title: "Trash",
+    copy: "Items that cannot be recycled or composted curbside—never batteries or electronics."
+  }
+] as const;
 
 export default function HomePage() {
-  const [mainCardRef, isMainCardVisible] = useOnScreen({ threshold: 0.1 });
-  const [recyclablesRef, isRecyclablesVisible] = useOnScreen({ threshold: 0.15 });
-  const statsSectionRef = useRef<HTMLElement>(null);
-
-  const handleScrollDown = () => {
-    statsSectionRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   return (
-    <div className="dark min-h-screen bg-background text-foreground">
-      <section className="flex flex-col items-center justify-center h-screen p-6 text-center relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-full z-0 video-container">
-          <video autoPlay loop muted playsInline className="w-full h-full object-cover">
-            <source src="/hero-video-loop-2k.mp4" type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
-        </div>
-
-        <div className="relative z-10 flex flex-col items-center justify-center w-full">
-          <div
-            ref={mainCardRef}
-            className={cn(
-              "transform transition-all duration-1000 ease-out",
-              isMainCardVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"
-            )}>
-            <Card className="w-full max-w-3xl bg-card/80 backdrop-blur-xl border-none shadow-2xl">
-              <CardHeader>
-                <CardTitle className="text-5xl font-bold text-primary tracking-tight">
-                  scrapp
-                </CardTitle>
-                <p className="text-muted-foreground text-lg">Your Smart Waste Disposal Helper</p>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <p className="text-xl text-foreground/90">
-                  Confused about recycling? Scrapp makes it simple. Just snap a photo, and
-                  we&apos;ll tell you exactly how to dispose of your items properly. Then,
-                  we&apos;ll tell you where you can dispose of the item.
-                </p>
-                <Button asChild size="lg" className="mt-4">
-                  <Link href="/cam">
-                    Get Started <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleScrollDown}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 cursor-pointer animate-bob z-30"
-          aria-label="Scroll down to statistics">
-          <ArrowDown className="w-8 h-8 text-muted-foreground" />
-        </button>
-      </section>
-
-      <section ref={statsSectionRef} className="py-20 bg-muted/20">
-        <div className="container mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center mb-4">Why It Matters</h2>
-          <p className="text-muted-foreground text-center max-w-2xl mx-auto mb-12">
-            Improper waste disposal has a huge impact on our planet. Your choices make a difference,
-            and Scrapp is here to empower them.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <AnimatedStatistic
-              icon={Recycle}
-              value={79}
-              suffix="%"
-              label="of plastic waste ends up in landfills or nature because it's not recycled."
-            />
-            <AnimatedStatistic
-              icon={Trash2}
-              value={220}
-              suffix="M"
-              label="tons of plastic waste will be generated this year alone."
-            />
-            <AnimatedStatistic
-              icon={Globe}
-              value={82}
-              suffix="M"
-              label="tons of e-waste are projected for 2030, a 32% increase from 2022."
-            />
-          </div>
-        </div>
-      </section>
-
-      <section className="py-20 bg-muted/67">
+    <div className="overflow-x-clip pb-28 sm:pb-0">
+      <section className="relative min-h-[min(52rem,100svh)] border-b border-border/70 px-5 pb-16 pt-24 sm:px-8 sm:pt-28 lg:px-12">
         <div
-          ref={recyclablesRef}
-          className={cn(
-            "transform transition-all duration-1000 ease-out",
-            isRecyclablesVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-          )}>
-          <h2 className="text-3xl font-bold text-center mb-4">Lesser Known Recyclables</h2>
-          <p className="text-muted-foreground text-center max-w-2xl mx-auto mb-12">
-            Did you know how to handle these waste items? Scrapp is here to help you learn and make
-            informed decisions about recycling and waste disposal.
-          </p>
-          <div className="container mx-auto px-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-20">
-              {recyclables.map((it) => (
-                <Card
-                  key={it.item_name}
-                  className="group relative overflow-hidden border-none bg-card/70 backdrop-blur-xl shadow-xl transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl">
-                  <CardHeader className="relative">
-                    <div className="flex items-start justify-between gap-4">
-                      <CardTitle className="text-xl font-semibold leading-tight">
-                        {it.item_name}
-                      </CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="relative space-y-4">
-                    <div>
-                      <p className="text-base font-medium">Prep steps</p>
-                      <ul className="mt-2 list-disc pl-5 space-y-1 text-base text-foreground/90">
-                        {it.prep_steps.map((s) => (
-                          <li key={s}>{s}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div className="rounded-md bg-muted/40 p-4 text-base flex items-start gap-2">
-                      <div>
-                        <p>{it.impact_note}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+          aria-hidden
+          className="absolute inset-0 -z-10 opacity-60 [background-image:linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] [background-size:48px_48px] [mask-image:linear-gradient(to_bottom,black,transparent_82%)]"
+        />
+        <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:gap-16">
+          <div className="max-w-2xl">
+            <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-background/75 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground backdrop-blur">
+              <span className="size-2 rounded-full bg-primary" /> San Diego disposal assistant
+            </p>
+            <h1 className="font-display text-[clamp(3.2rem,8.8vw,7.6rem)] font-semibold leading-[0.92] tracking-[-0.065em] text-balance">
+              Snap it. <span className="text-primary">Sort it right.</span>
+            </h1>
+            <p className="mt-7 max-w-xl text-lg leading-8 text-muted-foreground sm:text-xl">
+              Take a photo and get San Diego disposal guidance, the right bin, and nearby drop-off
+              options.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Button asChild size="lg">
+                <Link href="/cam" prefetch={false}>
+                  <ScanLine className="size-5" /> Scan an item
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link href="/locations" prefetch={false}>
+                  <MapPin className="size-5" /> Find a drop-off
+                </Link>
+              </Button>
+            </div>
+            <p className="mt-5 flex items-start gap-2 text-sm text-muted-foreground">
+              <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" /> Independent helper—not
+              an official City of San Diego service.
+            </p>
+          </div>
+          <LandingScanDemo />
+        </div>
+      </section>
+
+      <section className="px-5 py-20 sm:px-8 lg:px-12 lg:py-28" aria-labelledby="journey-title">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-8 lg:grid-cols-[0.7fr_1.3fr]">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
+                One short journey
+              </p>
+              <h2
+                id="journey-title"
+                className="font-display mt-3 max-w-lg text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
+                From an object in your hand to a local answer.
+              </h2>
+              <a
+                className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-primary underline-offset-4 hover:underline"
+                href="https://www.sandiego.gov/environmental-services/recycling"
+                target="_blank"
+                rel="noreferrer">
+                City recycling resources <ArrowRight className="size-4" />
+              </a>
+            </div>
+            <ol className="divide-y divide-border border-y border-border">
+              {journey.map((step) => (
+                <li
+                  key={step.eyebrow}
+                  className="grid gap-2 py-5 sm:grid-cols-[8rem_1fr_1.1fr] sm:items-baseline">
+                  <span className="text-xs font-bold uppercase tracking-[0.14em] text-primary">
+                    {step.eyebrow}
+                  </span>
+                  <span className="font-display text-xl font-semibold">{step.title}</span>
+                  <span className="text-sm leading-6 text-muted-foreground">{step.detail}</span>
+                </li>
               ))}
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <section
+        className="bg-[#101817] px-5 py-20 text-white sm:px-8 lg:px-12 lg:py-28"
+        aria-labelledby="curbside-title">
+        <div className="mx-auto max-w-7xl">
+          <div className="max-w-2xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-300">
+              Curbside, decoded
+            </p>
+            <h2
+              id="curbside-title"
+              className="font-display mt-3 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
+              Three colors. Three different jobs.
+            </h2>
+          </div>
+          <div className="mt-12 grid overflow-hidden rounded-[22px] border border-white/10 lg:grid-cols-[1.2fr_1fr_0.85fr]">
+            {curbside.map((bin, index) => (
+              <article
+                key={bin.color}
+                className="relative min-h-64 border-b border-white/10 p-7 last:border-b-0 lg:border-r lg:border-b-0 lg:last:border-r-0">
+                <div
+                  aria-hidden
+                  className={`absolute inset-x-0 top-0 h-1 ${bin.color === "blue" ? "bg-blue-500" : bin.color === "green" ? "bg-green-500" : "bg-zinc-400"}`}
+                />
+                <span className="text-xs font-bold uppercase tracking-[0.16em] text-white/45">
+                  0{index + 1} · {bin.label}
+                </span>
+                <h3 className="font-display mt-12 text-2xl font-semibold">{bin.title}</h3>
+                <p className="mt-3 max-w-sm text-sm leading-6 text-white/62">{bin.copy}</p>
+              </article>
+            ))}
+          </div>
+          <p className="mt-5 max-w-3xl text-xs leading-5 text-white/45">
+            Always confirm current local rules. Scrapp uses classification guidance to help you
+            decide; City resources remain the source of truth.
+          </p>
+        </div>
+      </section>
+
+      <section className="px-5 py-20 sm:px-8 lg:px-12 lg:py-28" aria-labelledby="surprise-title">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex items-end justify-between gap-8">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
+                Worth a second look
+              </p>
+              <h2
+                id="surprise-title"
+                className="font-display mt-3 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
+                Items that surprise people.
+              </h2>
+            </div>
+            <span className="hidden text-sm text-muted-foreground sm:block">Swipe on mobile →</span>
+          </div>
+          <section
+            aria-label="Items that surprise people"
+            className="-mx-5 mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:px-0 lg:grid-cols-3">
+            {recyclables.slice(0, 6).map((item, index) => (
+              <article
+                key={item.item_name}
+                className="min-w-[82vw] snap-start rounded-[20px] border border-border bg-card p-6 sm:min-w-0">
+                <div className="flex items-center justify-between">
+                  {index % 2 === 0 ? (
+                    <Recycle className="size-5 text-primary" />
+                  ) : (
+                    <Trash2 className="size-5 text-muted-foreground" />
+                  )}
+                  <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    Guide {String(index + 1).padStart(2, "0")}
+                  </span>
+                </div>
+                <h3 className="font-display mt-8 text-2xl font-semibold">{item.item_name}</h3>
+                <p className="mt-3 line-clamp-3 text-sm leading-6 text-muted-foreground">
+                  {item.prep_steps.join(" ")}
+                </p>
+                <Link
+                  prefetch={false}
+                  href="/cam"
+                  className="mt-5 inline-flex min-h-11 items-center text-sm font-semibold text-primary underline-offset-4 hover:underline">
+                  Scan a similar item <ArrowRight className="ml-2 size-4" />
+                </Link>
+              </article>
+            ))}
+          </section>
+        </div>
+      </section>
+
+      <section className="px-5 pb-24 sm:px-8 lg:px-12 lg:pb-28">
+        <div className="mx-auto grid max-w-7xl overflow-hidden rounded-[24px] border border-border bg-card lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="p-7 sm:p-10 lg:p-14">
+            <BatteryCharging className="size-8 text-primary" strokeWidth={1.8} />
+            <h2 className="font-display mt-8 max-w-2xl text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
+              Some items need more than a curbside bin.
+            </h2>
+            <p className="mt-5 max-w-xl leading-7 text-muted-foreground">
+              Electronics, batteries, paint, and hazardous materials often need a dedicated
+              destination. Scrapp carries the item context into the locations search so you do not
+              have to start over.
+            </p>
+            <Button asChild size="lg" className="mt-8">
+              <Link href="/locations" prefetch={false}>
+                <MapPin className="size-5" /> Explore drop-off options
+              </Link>
+            </Button>
+          </div>
+          <div className="relative min-h-72 border-t border-border bg-muted/60 p-8 lg:border-t-0 lg:border-l">
+            <div
+              aria-hidden
+              className="absolute inset-0 opacity-70 [background-image:linear-gradient(135deg,transparent_46%,var(--border)_47%,var(--border)_49%,transparent_50%)] [background-size:32px_32px]"
+            />
+            <div className="relative flex h-full flex-col justify-between rounded-[18px] border border-border bg-background/90 p-6 backdrop-blur">
+              <span className="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                Location handoff
+              </span>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <CircleCheck className="size-5 text-primary" />
+                  <span className="font-semibold">Item context preserved</span>
+                </div>
+                <div className="h-px bg-border" />
+                <div className="flex items-center gap-3">
+                  <MapPin className="size-5 text-primary" />
+                  <span className="font-semibold">Manual city or ZIP always available</span>
+                </div>
+              </div>
             </div>
           </div>
-
-          <div className="text-center pt-8">
-            <Card className="bg-primary/5 border-primary/20 max-w-2xl mx-auto">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-center gap-3 mb-4">
-                  <Camera className="h-8 w-8 text-primary" />
-                  <h3 className="text-xl font-semibold text-foreground">Still Confused?</h3>
-                </div>
-                <p className="text-muted-foreground mb-4">
-                  Don&apos;t worry about memorizing all these rules. Just snap a photo of your item,
-                  and Scrapp will tell you exactly how to dispose of it properly!
-                </p>
-                <Button asChild size="lg">
-                  <Link href="/cam">
-                    Try Scrapp Now <Camera className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </section>
 
-      <footer className="py-8 text-center text-muted-foreground text-sm">
-        <p>Making waste disposal less confusing, one photo at a time.</p>
-        <div className="mt-4 flex items-center justify-center gap-4">
-          <a
-            href="https://github.com/adikatre/scrapp"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors">
-            <Github className="h-4 w-4" />
-            Frontend
-          </a>
-          <a
-            href="https://github.com/adikatre/scrapp-backend"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors">
-            <Github className="h-4 w-4" />
-            Backend
-          </a>
+      <section className="border-y border-border bg-primary px-5 py-14 text-primary-foreground sm:px-8 lg:px-12">
+        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-7 sm:flex-row sm:items-center">
+          <div>
+            <p className="font-display text-3xl font-semibold tracking-[-0.03em]">
+              One photo. A clearer next move.
+            </p>
+            <p className="mt-2 text-sm text-primary-foreground/90">
+              Review the result before you act, and check local rules for final confirmation.
+            </p>
+          </div>
+          <Button asChild size="lg" variant="secondary">
+            <Link href="/cam" prefetch={false}>
+              <ScanLine className="size-5" /> Scan an item
+            </Link>
+          </Button>
+        </div>
+      </section>
+
+      <footer className="px-5 py-12 sm:px-8 lg:px-12">
+        <div className="mx-auto flex max-w-7xl flex-col gap-8 border-b border-border pb-24 sm:flex-row sm:items-end sm:justify-between sm:pb-8">
+          <div>
+            <p className="font-display text-2xl font-semibold">scrapp</p>
+            <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+              Independent photo-first disposal guidance for San Diego.
+            </p>
+          </div>
+          <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold">
+            <Link href="/cam" prefetch={false}>
+              Scan
+            </Link>
+            <Link href="/locations" prefetch={false}>
+              Locations
+            </Link>
+            <a
+              href="https://www.sandiego.gov/environmental-services/recycling"
+              target="_blank"
+              rel="noreferrer">
+              City resources
+            </a>
+            <a
+              href="https://github.com/adikatre/scrapp"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5">
+              <Github className="size-4" /> Frontend
+            </a>
+            <a
+              href="https://github.com/adikatre/scrapp-backend"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5">
+              <Github className="size-4" /> Backend
+            </a>
+          </nav>
         </div>
       </footer>
     </div>

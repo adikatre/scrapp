@@ -20,7 +20,9 @@ export function MapPanel({
   isSearchable
 }: MapPanelProps) {
   return (
-    <div className="order-first lg:order-last h-[45vh] min-h-[280px] shrink-0 lg:h-auto lg:min-h-0 lg:shrink lg:flex-grow rounded-lg overflow-hidden relative shadow-lg">
+    <section
+      aria-label="Drop-off map"
+      className="relative min-h-[58dvh] flex-1 overflow-hidden rounded-[20px] border border-border bg-muted/30 shadow-sm lg:h-full lg:min-h-0">
       {isSearchable ? (
         <LocationMapWidget
           places={places}
@@ -30,16 +32,17 @@ export function MapPanel({
           onSelectPlace={onSelectPlace}
         />
       ) : (
-        <div className="flex h-full items-center justify-center bg-muted/20 p-8 text-center">
+        <div className="flex h-full min-h-72 items-center justify-center p-8 text-center">
           <div>
-            <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">No map needed for this disposal type.</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Try a searchable category like Recycling, E-Waste, or Hazardous Waste.
+            <MapPin className="mx-auto size-9 text-muted-foreground" />
+            <p className="mt-4 font-semibold">No map needed for this route</p>
+            <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
+              Choose Recycling, E-Waste, Hazardous, Donation, or another searchable category to find
+              a destination.
             </p>
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 }

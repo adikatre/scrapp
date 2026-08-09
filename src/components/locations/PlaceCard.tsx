@@ -43,18 +43,19 @@ export function PlaceCard({
 }: PlaceCardProps) {
   return (
     <Card
-      className={`p-4 bg-muted/50 hover:bg-muted/80 transition-colors cursor-pointer ${
-        isSelected ? "ring-2 ring-primary" : ""
-      }`}
-      onClick={onSelect}>
-      <div className="flex items-start gap-3">
+      className={`overflow-hidden rounded-[18px] border bg-card p-0 transition-[border-color,box-shadow] duration-200 ${isSelected ? "border-primary ring-2 ring-primary/25" : "border-border"}`}>
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-pressed={isSelected}
+        className="flex min-h-20 w-full items-start gap-3 p-4 text-left hover:bg-muted/50">
         {place.photoName && !hasFailedImage && (
           <img
             src={`/api/place-photo?name=${encodeURIComponent(place.photoName)}&w=128`}
             alt=""
             loading="lazy"
             decoding="async"
-            className="h-14 w-14 shrink-0 rounded-md bg-muted object-cover"
+            className="size-14 shrink-0 rounded-xl bg-muted object-cover"
             onError={() => {
               if (place.photoName) onImageError(place.photoName);
             }}
@@ -62,74 +63,66 @@ export function PlaceCard({
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold text-foreground">{place.name}</h3>
+            <h3 className="font-display font-semibold leading-snug">{place.name}</h3>
             {place.distanceMiles != null && (
               <Badge variant="secondary" className="shrink-0">
                 {formatDistance(place.distanceMiles)}
               </Badge>
             )}
           </div>
-
-          <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-            <Compass className="h-4 w-4 shrink-0" />
+          <p className="mt-1 flex items-start gap-2 text-sm leading-5 text-muted-foreground">
+            <Compass className="mt-0.5 size-4 shrink-0" />
             {place.address}
           </p>
         </div>
-      </div>
-
+      </button>
       {place.note && (
-        <p className="text-sm text-muted-foreground flex items-start gap-2 mt-1">
-          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+        <p className="mx-4 flex items-start gap-2 rounded-xl bg-primary/8 p-3 text-sm leading-5 text-muted-foreground">
+          <AlertCircle className="mt-0.5 size-4 shrink-0 text-primary" />
           {place.note}
         </p>
       )}
-
-      <div className="flex flex-wrap gap-2 mt-3">
-        <Button size="sm" variant="outline" asChild onClick={(e) => e.stopPropagation()}>
+      <div className="flex flex-wrap gap-2 px-4 py-3">
+        <Button size="sm" variant="outline" asChild>
           <a href={directionsUrl(place)} target="_blank" rel="noreferrer noopener">
-            <Navigation className="h-3.5 w-3.5 mr-1" />
-            Directions
+            <Navigation className="size-4" /> Directions
           </a>
         </Button>
         <Button
           size="sm"
           variant="ghost"
-          onClick={(e) => {
-            e.stopPropagation();
-            onExpand();
-          }}
-          disabled={isLoadingDetails}>
+          onClick={onExpand}
+          disabled={isLoadingDetails}
+          aria-expanded={isExpanded}>
           {isLoadingDetails ? (
-            "Loading..."
+            "Loading…"
           ) : isExpanded ? (
             <>
-              <ChevronUp className="h-3.5 w-3.5 mr-1" />
-              Less
+              <ChevronUp className="size-4" /> Less
             </>
           ) : (
             <>
-              <ChevronDown className="h-3.5 w-3.5 mr-1" />
-              Details
+              <ChevronDown className="size-4" /> Details
             </>
           )}
         </Button>
       </div>
-
       {isExpanded && details && (
-        <div className="mt-3 pt-3 border-t border-border/50 space-y-2 text-sm">
+        <div className="space-y-2 border-t border-border px-4 py-4 text-sm">
           {details.openNow != null && (
             <p className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              {details.openNow ? (
-                <span className="text-green-500">Open now</span>
-              ) : (
-                <span className="text-muted-foreground">Closed now</span>
-              )}
+              <Clock className="size-4" />
+              <span
+                className={
+                  details.openNow ? "font-semibold text-primary" : "text-muted-foreground"
+                }>
+                {details.openNow ? "Open now" : "Closed now"}
+              </span>
             </p>
           )}
           {details.phone && (
             <p className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
+              <Phone className="size-4" />
               <a href={`tel:${details.phone}`} className="text-primary underline">
                 {details.phone}
               </a>
@@ -137,18 +130,18 @@ export function PlaceCard({
           )}
           {details.website && (
             <p className="flex items-center gap-2">
-              <Globe className="h-4 w-4" />
+              <Globe className="size-4" />
               <a
                 href={details.website}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="text-primary underline truncate">
+                className="truncate text-primary underline">
                 Website
               </a>
             </p>
           )}
-          {details.weekdayDescriptions && details.weekdayDescriptions.length > 0 && (
-            <ul className="text-muted-foreground space-y-0.5">
+          {details.weekdayDescriptions && (
+            <ul className="space-y-1 text-muted-foreground">
               {details.weekdayDescriptions.map((line) => (
                 <li key={line}>{line}</li>
               ))}

@@ -11,7 +11,7 @@ export function cn(...inputs: ClassValue[]) {
  * @param dataUrl The data URL to convert.
  * @param filename The name of the file.
  * @returns A File object or null if the conversion fails.
- * 
+ *
  * ex. dataURLtoFile("data:image/png;base64,<base64string>", "test.png");
  */
 export function dataURLtoFile(dataUrl: string, filename: string) {

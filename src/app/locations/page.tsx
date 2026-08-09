@@ -1,38 +1,44 @@
 "use client";
 
 import { APIProvider } from "@vis.gl/react-google-maps";
-import { AlertCircle, Camera, MapPin } from "lucide-react";
+import { AlertCircle, Camera, List, Map as MapIcon, MapPin, Search } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CategoryTabs } from "@/components/locations/CategoryTabs";
 import { MapPanel } from "@/components/locations/MapPanel";
 import { PlaceCard } from "@/components/locations/PlaceCard";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LocationSearchWidget, type LocationSelection } from "@/components/widgets/location-search";
+import useMediaQuery from "@/hooks/useMediaQuery";
 import { haversineDistance, readSavedLocationPrefs, saveLocationPrefs } from "@/lib/geo";
 import { getPlaceDetails, searchPlaces } from "@/lib/googlePlaces";
 import {
   getCategoryByKey,
   getCurbsideBinInfo,
-  isLocationCategoryKey,
   itemAffectsSearch,
   type LocationCategoryKey
 } from "@/lib/locationCategories";
+import {
+  buildLocationSearchHref,
+  decodeLocationSearchParams,
+  mergeLocationSearchParams
+} from "@/lib/locationSearchParams";
 import type { Place, PlaceDetails } from "@/lib/types";
 
 function LocationsPageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const rawCategory = searchParams.get("category");
-  const initialCategory: LocationCategoryKey =
-    rawCategory && isLocationCategoryKey(rawCategory) ? rawCategory : "recycle";
-  const scannedItem = searchParams.get("item");
-  const scannedQueries = useMemo(() => searchParams.getAll("q"), [searchParams]);
-  const curbsideBin = getCurbsideBinInfo(searchParams.get("bin"));
+  const searchParamsObj = useMemo(() => decodeLocationSearchParams(searchParams), [searchParams]);
+  const {
+    category: initialCategory,
+    item: scannedItem,
+    queries: scannedQueries,
+    bin: curbsideBinRaw
+  } = searchParamsObj;
+  const curbsideBin = curbsideBinRaw ? getCurbsideBinInfo(curbsideBinRaw) : undefined;
 
   const savedOnMount = useMemo(() => readSavedLocationPrefs(), []);
 
@@ -61,6 +67,8 @@ function LocationsPageContent() {
   const [loadingDetails, setLoadingDetails] = useState<Record<string, boolean>>({});
   const [isLocating, setIsLocating] = useState(false);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+  const [mobileView, setMobileView] = useState<"list" | "map">("list");
+  const isDesktop = useMediaQuery(1024);
 
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const searchSeqRef = useRef(0);
@@ -170,7 +178,7 @@ function LocationsPageContent() {
 
         if (cancelled) return;
 
-        if (permission.state === "granted" || permission.state === "prompt") {
+        if (permission.state === "granted") {
           navigator.geolocation.getCurrentPosition(
             (pos) => {
               if (cancelled) return;
@@ -214,7 +222,17 @@ function LocationsPageContent() {
   }, [locationReady]);
 
   const handleSelectSubcategory = (key: LocationCategoryKey, item: string) => {
-    router.push(`/locations?category=${key}&item=${encodeURIComponent(item)}`);
+    const params = mergeLocationSearchParams(searchParamsObj, { category: key, item });
+    const href = buildLocationSearchHref(params);
+    window.history.replaceState(null, "", href);
+    setActiveCategory(key);
+  };
+
+  const handleSelectCategory = (key: LocationCategoryKey) => {
+    const params = mergeLocationSearchParams(searchParamsObj, { category: key, item: null });
+    const href = buildLocationSearchHref(params);
+    window.history.replaceState(null, "", href);
+    setActiveCategory(key);
   };
 
   const filteredPlaces = useMemo(() => {
@@ -293,6 +311,7 @@ function LocationsPageContent() {
 
   const handleSelectPlace = (placeId: string) => {
     setSelectedPlaceId(placeId);
+    if (!isDesktop) setMobileView("list");
     cardRefs.current[placeId]?.scrollIntoView({
       behavior: "smooth",
       block: "nearest"
@@ -341,13 +360,16 @@ function LocationsPageContent() {
       : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${place.name}, ${place.address}`)}&destination_place_id=${encodeURIComponent(place.id)}`;
 
   const content = (
-    <div className="dark min-h-screen bg-background flex flex-col lg:flex-row lg:max-h-screen p-4 lg:p-6 gap-4 lg:gap-6">
-      <Card className="w-full lg:w-1/3 lg:max-w-md flex flex-col border-border shadow-lg lg:max-h-[calc(100vh-3rem)]">
+    <div className="flex min-h-screen flex-col gap-4 bg-background px-4 pt-4 pb-28 sm:px-6 sm:pt-20 lg:h-[100dvh] lg:flex-row lg:gap-6 lg:overflow-hidden lg:pb-6">
+      <Card className="flex w-full flex-col rounded-[20px] border-border shadow-sm lg:h-full lg:w-[min(31rem,40vw)] lg:flex-none">
         <CardHeader className="shrink-0">
-          <CardTitle className="flex items-center gap-2">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">
+            Local disposal
+          </p>
+          <h1 className="font-display flex items-center gap-2 text-2xl font-semibold tracking-[-0.03em]">
             <MapPin className="text-primary" />
             Find a Drop-Off Place
-          </CardTitle>
+          </h1>
           {scannedItem && category && (
             <p className="text-sm text-muted-foreground mt-1">
               {(activeCategory === initialCategory && scannedQueries.length > 0) ||
@@ -359,7 +381,7 @@ function LocationsPageContent() {
           )}
         </CardHeader>
 
-        <CardContent className="flex-grow flex flex-col gap-4 overflow-hidden">
+        <CardContent className="flex flex-grow flex-col gap-4 overflow-visible lg:overflow-hidden">
           <div className="shrink-0">
             <LocationSearchWidget
               value={locationLabel}
@@ -381,9 +403,29 @@ function LocationsPageContent() {
 
           <CategoryTabs
             activeCategory={activeCategory}
-            onSelectCategory={setActiveCategory}
+            onSelectCategory={handleSelectCategory}
             onSelectSubcategory={handleSelectSubcategory}
           />
+
+          {isSearchable && (
+            <fieldset className="grid grid-cols-2 rounded-xl bg-muted p-1 lg:hidden">
+              <legend className="sr-only">Results view</legend>
+              <Button
+                type="button"
+                variant={mobileView === "list" ? "secondary" : "ghost"}
+                onClick={() => setMobileView("list")}
+                aria-pressed={mobileView === "list"}>
+                <List className="size-4" /> List
+              </Button>
+              <Button
+                type="button"
+                variant={mobileView === "map" ? "secondary" : "ghost"}
+                onClick={() => setMobileView("map")}
+                aria-pressed={mobileView === "map"}>
+                <MapIcon className="size-4" /> Map
+              </Button>
+            </fieldset>
+          )}
 
           {showCurbsideNote && curbsideBin && (
             <Card className={`p-4 shrink-0 border ${curbsideBin.accent}`}>
@@ -416,14 +458,25 @@ function LocationsPageContent() {
 
           {isSearchable && (
             <>
-              <Input
-                placeholder="Filter results..."
-                value={listFilter}
-                onChange={(e) => setListFilter(e.target.value)}
-                className="shrink-0"
-              />
+              <div className="relative shrink-0">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  aria-label="Filter drop-off results"
+                  placeholder="Filter by name or address"
+                  value={listFilter}
+                  onChange={(event) => setListFilter(event.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <p className="text-xs font-semibold text-muted-foreground" aria-live="polite">
+                {isLoading
+                  ? "Searching nearby"
+                  : `${filteredPlaces.length} ${filteredPlaces.length === 1 ? "place" : "places"} found`}
+              </p>
 
-              <div className="space-y-3 overflow-y-auto flex-1 min-h-0 pr-1">
+              <section
+                className="min-h-0 flex-1 space-y-3 pr-1 lg:overflow-y-auto"
+                aria-label="Drop-off results">
                 {isLoading && (
                   <>
                     <p className="text-sm text-muted-foreground animate-pulse">
@@ -453,13 +506,21 @@ function LocationsPageContent() {
                       <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                       {error}
                     </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-3"
+                      onClick={() => void runSearch()}>
+                      Retry search
+                    </Button>
                   </Card>
                 )}
 
                 {!isLoading && !error && filteredPlaces.length === 0 && (
                   <Card className="p-4 bg-muted/50">
                     <p className="text-sm text-muted-foreground">
-                      We did not find any places here. Try a different city widen your search, or
+                      We did not find any places here. Try a different city, widen your search, or
                       switch categories.
                     </p>
                   </Card>
@@ -482,37 +543,46 @@ function LocationsPageContent() {
                       />
                     </div>
                   ))}
-              </div>
+              </section>
             </>
           )}
         </CardContent>
       </Card>
 
-      <MapPanel
-        places={filteredPlaces}
-        userLat={userCoords?.lat}
-        userLng={userCoords?.lng}
-        selectedPlaceId={selectedPlaceId}
-        onSelectPlace={handleSelectPlace}
-        isSearchable={isSearchable}
-      />
+      {(isDesktop || mobileView === "map") &&
+        (mapsApiKey ? (
+          <APIProvider apiKey={mapsApiKey} libraries={["places"]}>
+            <MapPanel
+              places={filteredPlaces}
+              userLat={userCoords?.lat}
+              userLng={userCoords?.lng}
+              selectedPlaceId={selectedPlaceId}
+              onSelectPlace={handleSelectPlace}
+              isSearchable={isSearchable}
+            />
+          </APIProvider>
+        ) : (
+          <div className="flex min-h-72 flex-1 items-center justify-center rounded-[20px] border border-dashed border-border bg-muted/40 p-8 text-center">
+            <div>
+              <MapPin className="mx-auto size-8 text-muted-foreground" />
+              <p className="mt-4 font-semibold">Map unavailable</p>
+              <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+                The results list still works. Add a Google Maps key to enable the map view.
+              </p>
+            </div>
+          </div>
+        ))}
     </div>
   );
 
-  return mapsApiKey ? (
-    <APIProvider apiKey={mapsApiKey} libraries={["places"]}>
-      {content}
-    </APIProvider>
-  ) : (
-    content
-  );
+  return content;
 }
 
 export default function LocationsPage() {
   return (
     <Suspense
       fallback={
-        <div className="dark min-h-screen bg-background p-6">
+        <div className="min-h-screen bg-background p-6 pt-20">
           <Skeleton className="h-[80vh] w-full" />
         </div>
       }>
