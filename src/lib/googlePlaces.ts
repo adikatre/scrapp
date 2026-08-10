@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies, headers } from "next/headers";
 import { getCuratedPlaces } from "./curated";
 import { isSamePlace } from "./curated/geo";
 import {
@@ -8,7 +9,18 @@ import {
   type LocationCategoryKey,
   sanitizeSearchQueries
 } from "./locationCategories";
+import { checkPlacesRateLimit } from "./rateLimit";
 import type { Place, PlaceDetails } from "./types";
+
+async function allowPlacesRequest() {
+  const cookieStore = await cookies();
+  const headerStore = await headers();
+  const identifier =
+    cookieStore.get("scrapp_device_id")?.value ||
+    headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    "unknown";
+  return (await checkPlacesRateLimit(identifier)).success;
+}
 
 const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY ?? "";
 
@@ -70,6 +82,13 @@ export async function searchPlaces(input: {
     locationLabel: input.locationLabel
   });
 
+  if (!(await allowPlacesRequest())) {
+    return {
+      places: curated,
+      error: curated.length ? undefined : "Too many location requests. Wait a moment and retry."
+    };
+  }
+
   if (!PLACES_API_KEY) {
     return {
       places: curated,
@@ -93,10 +112,9 @@ export async function searchPlaces(input: {
     .map((q) => (hasCoords ? q : `${q} near ${input.locationLabel}`))
     .filter((q) => q !== baseQuery);
 
-  const [itemResults, baseResult] = await Promise.all([
-    Promise.all(itemQueries.map((textQuery) => runTextSearch(textQuery, input.lat, input.lng))),
-    runTextSearch(baseQuery, input.lat, input.lng)
-  ]);
+  const itemResults = await Promise.all(
+    itemQueries.map((textQuery) => runTextSearch(textQuery, input.lat, input.lng))
+  );
 
   const seen = new Set<string>();
   const merged: Place[] = [...curated];
@@ -124,7 +142,11 @@ export async function searchPlaces(input: {
   // absent; text search is fuzzy, so drop adjacent-but-wrong business types
   // (e.g. scrap metal yards for "household hazardous waste").
   const itemResultCount = merged.length - curated.length;
-  if (itemQueries.length === 0 || itemResultCount < MIN_ITEM_RESULTS) {
+  const baseResult =
+    itemQueries.length === 0 || itemResultCount < MIN_ITEM_RESULTS
+      ? await runTextSearch(baseQuery, input.lat, input.lng)
+      : { places: [] };
+  if (baseResult.places.length) {
     for (const place of baseResult.places) {
       if (seen.has(place.id)) continue;
       if (category.excludeResultPattern?.test(place.name)) continue;
@@ -236,6 +258,9 @@ export async function autocompleteLocations(input: {
   lat?: number;
   lng?: number;
 }): Promise<{ predictions: LocationPrediction[]; error?: string }> {
+  if (!(await allowPlacesRequest())) {
+    return { predictions: [], error: "Too many location requests. Wait a moment and retry." };
+  }
   if (!PLACES_API_KEY) {
     return { predictions: [], error: "Google Places API key is not configured." };
   }
@@ -320,7 +345,7 @@ export async function resolveLocationPlace(
   placeId: string,
   sessionToken?: string
 ): Promise<{ label: string; lat: number; lng: number } | null> {
-  if (!PLACES_API_KEY) return null;
+  if (!PLACES_API_KEY || !(await allowPlacesRequest())) return null;
 
   try {
     const params = sessionToken ? `?sessionToken=${encodeURIComponent(sessionToken)}` : "";
@@ -359,6 +384,9 @@ export async function resolveLocationPlace(
 export async function getPlaceDetails(
   placeId: string
 ): Promise<{ details: PlaceDetails | null; error?: string }> {
+  if (!(await allowPlacesRequest())) {
+    return { details: null, error: "Too many location requests. Wait a moment and retry." };
+  }
   if (!PLACES_API_KEY) {
     return {
       details: null,

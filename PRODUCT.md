@@ -1,57 +1,65 @@
 # Scrapp product contract
 
-## What Scrapp does
+## Product
 
-Scrapp is an independent disposal assistant for San Diego. A person photographs or uploads an item, receives a plain-language disposal route and exact curbside bin when applicable, and can continue to nearby drop-off options when the route needs a physical destination.
+Scrapp is an independent disposal decision assistant. It identifies an item from a photo, upload, or description; resolves the user's local service context; applies a versioned rule from an official or verified source; explains preparation and safety; and hands off to a verified destination when curbside disposal is inappropriate.
 
-## Primary users
+Scrapp begins with City of San Diego rules and must not market worldwide coverage until another jurisdiction passes the same source, accuracy, and review gates.
 
-- San Diego residents who need a fast answer at the moment of disposal.
-- People holding an unfamiliar item who may not know the material or local rule.
-- Mobile users working one-handed near a bin, garage, or drop-off site.
+## Audience and operating scene
 
-## Core journeys
+- Residents making a quick decision beside a bin, garage, or drop-off site.
+- People who know the object but not its material or local program.
+- Mobile users working one-handed, sometimes with weak connectivity.
+- Future municipal and hauler reviewers maintaining accountable local guidance.
 
-1. Scan or upload an item.
-2. Review the image and optionally add a note.
-3. Analyze the item using the existing prediction contract.
-4. Show the exact bin or special route as the dominant answer.
-5. Offer nearby locations only when that route is searchable.
-6. Preserve completed scans in local history.
+## Core mechanism
 
-## Compatibility requirements
+1. Accept exactly one primary input: photo, upload, description, or later barcode.
+2. Return item, material, condition, hazard, and confidence candidates only.
+3. Ask the user to choose when multiple items or meaningful uncertainty remain.
+4. Resolve jurisdiction and collection service.
+5. Apply the highest-precedence active rule: provider/property, municipality, regional, national, or explicitly unavailable.
+6. Present bin or special route, preparation, safety, source, effective date, and last-checked date.
+7. Offer locations only when a physical handoff is required.
+8. Save locally and collect structured corrections without retaining cloud photos.
 
-- Keep the `/`, `/cam`, and `/locations` routes and existing navigation destinations.
-- Keep classifier and Places request/response contracts unchanged.
-- Keep location query parameters, including repeatable `q` values, compatible.
-- Keep `ScanTicket` data and the `scrapp-scan-history` localStorage key compatible, including the 20-item limit.
-- Never fabricate a successful production classification. Marketing demos may use clearly labeled static fixtures.
-- Do not change backend behavior as part of this redesign.
+## Trust principles
 
-## Product voice
+- Identification is probabilistic; disposal policy is deterministic.
+- The model never chooses a bin, facility, or legal rule.
+- Confirmed decisions cite an active rule version and official or verified source.
+- Unknown coverage stays unknown and never defaults to San Diego.
+- Classifier fallbacks, empty output, and outages are not successful decisions.
+- Verified facility acceptance outranks generic discovery; generic results say Call to confirm.
+- Community corrections enter review and never publish automatically.
+- Scrapp is not an official City of San Diego service.
 
-Clear, calm, local, and practical. Lead with the answer, use short imperative guidance, and explain recovery steps without blame. Scrapp must state that it is an independent assistant rather than an official City of San Diego service.
+## Privacy and accounts
 
-## Civic Optics design direction
+- Anonymous use remains complete.
+- Browser history uses IndexedDB and preserves the legacy `scrapp-scan-history` migration source.
+- Scan photos are excluded from cloud history and analytics.
+- Images, raw notes, barcodes, exact addresses, and precise coordinates must never be sent to PostHog or Sentry.
+- Optional accounts may sync metadata only after explicit import consent.
+- The consumer product remains free during the current roadmap.
 
-Scrapp combines camera precision with San Diego civic wayfinding. The system uses cool off-white and charcoal canvases, teal for actions, and reserves blue, green, and gray for disposal meaning. Sora carries concise marketing headlines; Geist carries controls and product guidance. Interfaces should feel spatial, direct, and trustworthy rather than botanical, futuristic, or ornamental.
+## Routes
 
-### Interaction principles
+Public: `/`, `/cam`, `/guide`, `/guide/[material]`, `/locations`, `/history`, `/settings`, `/account`, `/how-it-works`, `/about`, `/privacy`, `/terms`, and `/partners`.
 
-- Mobile tasks come before maps and supporting detail.
-- Primary touch controls target at least 44px.
-- Every state has a clear next action and a usable fallback.
-- Motion clarifies continuity and never hides initial content.
-- System light and dark preferences are respected; the camera workspace stays intentionally dark.
-- WCAG 2.2 AA is the acceptance standard.
+Internal rule, feedback, and evaluation tools remain configuration-gated until authentication and reviewer roles are connected.
 
-### Visual constraints
+## Compatibility locks
 
-- Panels use 18-20px radii; controls use 10-12px radii.
-- Pills are reserved for navigation and compact selectors.
-- Motion uses 120ms, 200ms, and 320ms durations with reduced-motion fallbacks.
-- Avoid generic nature-video marketing, decorative statistics, repeated equal card grids, neon AI effects, and excessive floating surfaces.
+- Preserve `/cam`, `/locations`, repeatable `q`, category/item/bin parameters, `ScanTicket`, and both legacy browser-storage keys.
+- Keep the Flask `/predict` service available for one rollback window while the Next.js Responses classifier reaches parity.
+- Do not remove legacy data until migration is confirmed.
+- No production UI may fabricate a successful result.
+- San Diego data must not be encoded as branches in the core rule interfaces.
 
-## Source of truth
+## Civic Optics
 
-Local disposal guidance must be traceable to the City of San Diego Environmental Services recycling resources. Scrapp must not imply City endorsement or invent environmental statistics, acceptance rules, or program claims.
+Civic Optics combines camera precision with San Diego civic wayfinding. Cool off-white and charcoal canvases carry the product; teal is reserved for actions; blue, green, and gray communicate disposal only. Sora leads concise display moments, Geist carries controls and guidance, and the camera remains intentionally dark.
+
+Primary mobile controls target 44px, product motion uses 120/200/320ms with reduced-motion fallbacks, system theme is respected, and WCAG 2.2 AA is the acceptance standard.

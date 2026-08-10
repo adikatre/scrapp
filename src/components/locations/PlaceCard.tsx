@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { trackProductEvent } from "@/lib/analytics";
 import { formatDistance } from "@/lib/geo";
 import type { Place, PlaceDetails } from "@/lib/types";
 
@@ -74,6 +75,9 @@ export function PlaceCard({
             <Compass className="mt-0.5 size-4 shrink-0" />
             {place.address}
           </p>
+          <Badge variant={place.curated ? "default" : "outline"} className="mt-2">
+            {place.curated ? "Verified acceptance" : "Call to confirm"}
+          </Badge>
         </div>
       </button>
       {place.note && (
@@ -84,7 +88,15 @@ export function PlaceCard({
       )}
       <div className="flex flex-wrap gap-2 px-4 py-3">
         <Button size="sm" variant="outline" asChild>
-          <a href={directionsUrl(place)} target="_blank" rel="noreferrer noopener">
+          <a
+            href={directionsUrl(place)}
+            target="_blank"
+            rel="noreferrer noopener"
+            onClick={() =>
+              trackProductEvent("directions_clicked", {
+                source: place.curated ? "verified" : "discovery"
+              })
+            }>
             <Navigation className="size-4" /> Directions
           </a>
         </Button>

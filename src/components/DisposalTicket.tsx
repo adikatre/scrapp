@@ -1,7 +1,8 @@
 "use client";
 
-import { MapPin, RotateCcw, Sparkles } from "lucide-react";
+import { ExternalLink, MapPin, RotateCcw, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { FeedbackControls } from "@/components/FeedbackControls";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -144,6 +145,36 @@ export function DisposalTicket({
             {ticket.guidance}
           </p>
         </div>
+        {ticket.decision && (
+          <>
+            {!!ticket.decision.safety.length && (
+              <div className="rounded-xl bg-secondary p-4">
+                <p className="text-sm font-semibold">Safety</p>
+                <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                  {ticket.decision.safety.map((item) => (
+                    <li key={item}>• {item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <div className="border-t border-border/70 pt-4 text-sm">
+              <p className="font-semibold">{ticket.decision.jurisdiction.municipality}</p>
+              <p className="mt-1 text-muted-foreground">{ticket.decision.serviceProfile.name}</p>
+              <a
+                href={ticket.decision.source.url}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex items-center gap-1.5 font-semibold text-primary underline underline-offset-4">
+                {ticket.decision.source.title} <ExternalLink className="size-3.5" />
+              </a>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Effective {ticket.decision.effectiveDate} · Last checked{" "}
+                {ticket.decision.lastChecked}
+              </p>
+            </div>
+            <FeedbackControls decision={ticket.decision} />
+          </>
+        )}
       </CardContent>
       {!demo && (
         <CardFooter className="flex flex-wrap gap-2 border-t border-border/70 pt-4">

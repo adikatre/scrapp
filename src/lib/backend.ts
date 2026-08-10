@@ -1,14 +1,11 @@
 "use server";
 
-import { checkScanRateLimit, validateImageFile } from "./rateLimit";
-import { BaseStates } from "./states";
-import type { PredictionResult } from "./types";
-
-const BACKEND_URL = process.env.NEXT_PRIVATE_BACKEND_URL || "";
-const BACKEND_API_KEY = process.env.BACKEND_API_KEY || "";
-
-if (!BACKEND_URL) throw new Error("[backend.ts] backend url not defined");
-if (!BACKEND_API_KEY) throw new Error("[backend.ts] backend api key not defined");
+import { identifyFromImage, identifyFromText } from "@/lib/identification";
+import { checkScanRateLimit, validateImageFile } from "@/lib/rateLimit";
+import { resolveDisposalDecision } from "@/lib/rules/engine";
+import type { DisposalDecision, IdentificationCandidate } from "@/lib/rules/types";
+import { BaseStates } from "@/lib/states";
+import type { PredictionResult } from "@/lib/types";
 
 type PredictReturnType =
   | [typeof BaseStates.ERROR, null, Record<string, string>?]
@@ -16,54 +13,126 @@ type PredictReturnType =
 
 function rateLimitHeaders(rl: { limit: number; remaining: number; reset: number }) {
   return {
-    "X-RateLimit-Limit": rl.limit.toString(),
-    "X-RateLimit-Remaining": rl.remaining.toString(),
-    "X-RateLimit-Reset": Math.ceil(rl.reset / 1000).toString()
+    "X-RateLimit-Limit": String(rl.limit),
+    "X-RateLimit-Remaining": String(rl.remaining),
+    "X-RateLimit-Reset": String(Math.ceil(rl.reset / 1000))
   };
 }
 
-function getClientId(formData: FormData): string {
+function getClientId(formData: FormData) {
   const clientId = formData.get("clientId");
-  if (typeof clientId === "string" && clientId) return clientId;
-  return "anonymous";
+  return typeof clientId === "string" && clientId ? clientId : crypto.randomUUID();
+}
+
+/**
+ * Compatibility adapter for callers that still expect the original PredictionResult.
+ * Identification and local policy now run inside Next.js; this no longer calls Flask.
+ */
+export async function decideCandidate(
+  candidate: IdentificationCandidate,
+  jurisdictionId?: string,
+  serviceProfileId?: string
+): Promise<DisposalDecision | null> {
+  return resolveDisposalDecision({ candidate, jurisdictionId, serviceProfileId });
 }
 
 export async function predict(formData: FormData): Promise<PredictReturnType> {
-  const clientId = getClientId(formData);
-  const rl = await checkScanRateLimit(clientId);
-
-  if (!rl.success) {
-    const retryAfter = Math.max(0, Math.ceil((rl.reset - Date.now()) / 1000)).toString();
-    return [BaseStates.ERROR, null, { ...rateLimitHeaders(rl), "Retry-After": retryAfter }];
+  const limit = await checkScanRateLimit(getClientId(formData));
+  if (!limit.success) {
+    return [
+      BaseStates.ERROR,
+      null,
+      {
+        ...rateLimitHeaders(limit),
+        "Retry-After": String(Math.max(1, Math.ceil((limit.reset - Date.now()) / 1000)))
+      }
+    ];
   }
-
-  const file = formData.get("file");
-  if (!(file instanceof File)) {
-    return [BaseStates.ERROR, null, rateLimitHeaders(rl)];
-  }
-
-  const validationError = validateImageFile(file);
-  if (validationError) {
-    return [BaseStates.ERROR, null, rateLimitHeaders(rl)];
-  }
-
-  const url = new URL(BACKEND_URL);
-  url.pathname = "/predict";
 
   try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${BACKEND_API_KEY}` },
-      body: formData
-    });
+    const file = formData.get("file");
+    const description = formData.get("text");
+    const identification =
+      file instanceof File
+        ? await (async () => {
+            const validationError = validateImageFile(file);
+            if (validationError) throw new Error(validationError);
+            return identifyFromImage(
+              file,
+              typeof description === "string" ? description : undefined
+            );
+          })()
+        : typeof description === "string" && description.trim()
+          ? await identifyFromText(description)
+          : null;
 
-    if (!res.ok) {
-      return [BaseStates.ERROR, null, rateLimitHeaders(rl)];
+    const candidate = identification?.candidates[0];
+    if (!candidate) return [BaseStates.ERROR, null, rateLimitHeaders(limit)];
+
+    if (identification.requiresChoice) {
+      return [
+        BaseStates.SUCCESS,
+        {
+          objects: identification.candidates.map((item) => item.name),
+          bin_totals: {},
+          detections: [],
+          items: identification.candidates.map((item) => ({
+            name: item.name,
+            material: item.material,
+            route: "Needs confirmation",
+            confidence: item.confidence,
+            caveats: identification.uncertainty
+          })),
+          classifier: {
+            model: identification.model,
+            source: "nextjs-identify-v1",
+            fallback_used: false
+          },
+          identificationCandidates: identification.candidates,
+          requiresChoice: true
+        },
+        rateLimitHeaders(limit)
+      ];
     }
 
-    const data = (await res.json()) as PredictionResult;
-    return [BaseStates.SUCCESS, data, rateLimitHeaders(rl)];
+    const decision = resolveDisposalDecision({
+      candidate,
+      jurisdictionId:
+        typeof formData.get("jurisdictionId") === "string"
+          ? String(formData.get("jurisdictionId"))
+          : undefined,
+      serviceProfileId:
+        typeof formData.get("serviceProfileId") === "string"
+          ? String(formData.get("serviceProfileId"))
+          : undefined
+    });
+    if (!decision) return [BaseStates.ERROR, null, rateLimitHeaders(limit)];
+
+    const result: PredictionResult = {
+      objects: [candidate.name],
+      bin_totals: { [decision.bin]: 1 },
+      detections: [],
+      text: [decision.instruction, ...decision.preparation].join("\n"),
+      items: [
+        {
+          name: candidate.name,
+          material: candidate.material,
+          route: decision.route,
+          bin: decision.bin,
+          confidence: candidate.confidence,
+          caveats: decision.exceptions.join(" "),
+          search_queries: decision.searchQueries
+        }
+      ],
+      classifier: {
+        model: identification.model,
+        source: "nextjs-identify-plus-rules-v1",
+        fallback_used: false
+      },
+      decision
+    };
+    return [BaseStates.SUCCESS, result, rateLimitHeaders(limit)];
   } catch {
-    return [BaseStates.ERROR, null, rateLimitHeaders(rl)];
+    return [BaseStates.ERROR, null, rateLimitHeaders(limit)];
   }
 }

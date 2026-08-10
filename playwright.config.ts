@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const browserChannel = process.env.CI ? undefined : "chrome";
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -8,16 +10,16 @@ export default defineConfig({
   reporter: "list",
   use: {
     baseURL: "http://127.0.0.1:3000",
-    channel: "chrome",
+    channel: browserChannel,
     trace: "on-first-retry",
     screenshot: "only-on-failure"
   },
   projects: [
     {
       name: "mobile",
-      use: { ...devices["iPhone 13"], browserName: "chromium", channel: "chrome" }
+      use: { ...devices["iPhone 13"], browserName: "chromium", channel: browserChannel }
     },
-    { name: "desktop", use: { viewport: { width: 1440, height: 1000 }, channel: "chrome" } }
+    { name: "desktop", use: { viewport: { width: 1440, height: 1000 }, channel: browserChannel } }
   ],
   webServer: {
     command: "bun run dev -- --hostname 127.0.0.1",

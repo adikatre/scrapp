@@ -176,7 +176,7 @@ export function LocationListWidget({
                       }}
                       className="h-8 w-8">
                       {isLoadingDetails ? (
-                        <div className="animate-spin h-4 w-4 border-b-2 border-primary rounded-full" />
+                        <div className="animate-spin h-4 w-4 border-2 border-primary/25 border-t-primary rounded-full" />
                       ) : details ? (
                         <ChevronUp className="h-4 w-4" />
                       ) : (

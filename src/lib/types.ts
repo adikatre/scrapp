@@ -1,3 +1,5 @@
+import type { DisposalDecision, IdentificationCandidate } from "@/lib/rules/types";
+
 export type PredictionRoute =
   | "Recycle"
   | "Compost"
@@ -44,6 +46,10 @@ export type PredictionResult = {
   text?: string;
   items?: ClassifiedItem[];
   classifier?: ClassifierMetadata;
+  /** Present for responses produced by the deterministic Next.js rules adapter. */
+  decision?: DisposalDecision;
+  identificationCandidates?: IdentificationCandidate[];
+  requiresChoice?: boolean;
 };
 
 export type Place = {
@@ -89,6 +95,8 @@ export type ScanTicketPayload = {
   bin?: string;
   itemName: string;
   searchQueries?: string[];
+  inputMode?: "photo" | "upload" | "describe" | "barcode";
+  decision?: DisposalDecision;
 };
 
 export type ScanTicket = {

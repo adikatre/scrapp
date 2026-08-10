@@ -6,6 +6,7 @@ import {
   Home,
   ImagePlus,
   Loader2,
+  MessageSquareText,
   RotateCcw,
   ScanLine,
   SwitchCamera,
@@ -21,13 +22,16 @@ import { ScanHistory } from "@/components/ScanHistory";
 import { ScanHistorySheet } from "@/components/ScanHistorySheet";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { predict } from "@/lib/backend";
+import { trackProductEvent } from "@/lib/analytics";
+import { decideCandidate, predict } from "@/lib/backend";
+import { getOrCreateDeviceId } from "@/lib/device-id";
 import {
   getDominantBin,
   getDominantItemName,
   getDominantRoute,
   getDominantSearchQueries
 } from "@/lib/locationCategories";
+import type { IdentificationCandidate } from "@/lib/rules/types";
 import { BaseStates } from "@/lib/states";
 import type { ScanTicket, ScanTicketPayload } from "@/lib/types";
 import { dataURLtoFile, summarizePrediction } from "@/lib/utils";
@@ -46,6 +50,13 @@ type ScanUiState =
   | { kind: "ready" }
   | { kind: "review"; image: string }
   | { kind: "analyzing"; image: string }
+  | {
+      kind: "choice";
+      image: string | null;
+      note?: string;
+      inputMode: "photo" | "describe";
+      candidates: IdentificationCandidate[];
+    }
   | { kind: "error"; code: CameraErrorCode; title: string; message: string; image?: string };
 
 export interface ScanViewProps {
@@ -108,6 +119,8 @@ export function ScanView({
   isMobile = false
 }: ScanViewProps) {
   const [note, setNote] = useState("");
+  const [description, setDescription] = useState("");
+  const [inputMode, setInputMode] = useState<"photo" | "describe">("photo");
   const [uiState, setUiState] = useState<ScanUiState>({ kind: "permission" });
   const [cameraFacingMode, setCameraFacingMode] = useState<"user" | "environment">("environment");
   const [isCapturing, setIsCapturing] = useState(false);
@@ -126,8 +139,34 @@ export function ScanView({
   const handleTextareaKeypress = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (!event.shiftKey && event.key === "Enter") {
       event.preventDefault();
-      void handleScan();
+      if (inputMode === "describe") void handleDescribe();
+      else void handleScan();
     }
+  };
+
+  const getLocalContext = () => {
+    try {
+      const raw = localStorage.getItem("scrapp-service-profile-v1");
+      const profile = raw
+        ? (JSON.parse(raw) as { jurisdictionId?: string; serviceProfileId?: string })
+        : null;
+      return {
+        jurisdictionId: profile?.jurisdictionId || "us-ca-san-diego",
+        serviceProfileId: profile?.serviceProfileId || "sd-city-serviced-home"
+      };
+    } catch {
+      return {
+        jurisdictionId: "us-ca-san-diego",
+        serviceProfileId: "sd-city-serviced-home"
+      };
+    }
+  };
+
+  const appendLocalContext = (formData: FormData) => {
+    const context = getLocalContext();
+    formData.append("clientId", getOrCreateDeviceId());
+    formData.append("jurisdictionId", context.jurisdictionId);
+    formData.append("serviceProfileId", context.serviceProfileId);
   };
 
   const requestCamera = async () => {
@@ -241,6 +280,8 @@ export function ScanView({
     const formData = new FormData();
     if (trimmedNote) formData.append("text", trimmedNote);
     formData.append("file", file);
+    appendLocalContext(formData);
+    trackProductEvent("analysis_started", { input_mode: "photo" });
     setUiState({ kind: "analyzing", image });
 
     try {
@@ -258,6 +299,16 @@ export function ScanView({
         });
         return;
       }
+      if (result.requiresChoice && result.identificationCandidates?.length) {
+        setUiState({
+          kind: "choice",
+          image,
+          note: trimmedNote || undefined,
+          inputMode: "photo",
+          candidates: result.identificationCandidates
+        });
+        return;
+      }
       onScanComplete({
         image,
         note: trimmedNote || undefined,
@@ -265,11 +316,15 @@ export function ScanView({
         disposalRoute: getDominantRoute(result),
         bin: getDominantBin(result) || undefined,
         itemName: getDominantItemName(result),
-        searchQueries: getDominantSearchQueries(result)
+        searchQueries: result.decision?.searchQueries ?? getDominantSearchQueries(result),
+        inputMode: "photo",
+        decision: result.decision
       });
+      trackProductEvent("analysis_succeeded", { input_mode: "photo" });
       setNote("");
       setUiState({ kind: "ready" });
     } catch (error) {
+      trackProductEvent("analysis_failed", { input_mode: "photo" });
       const timedOut = error instanceof Error && error.message === "timeout";
       setUiState({
         kind: "error",
@@ -282,6 +337,165 @@ export function ScanView({
       });
     }
   };
+
+  const handleDescribe = async () => {
+    const text = description.trim();
+    if (text.length < 2) return;
+    setUiState({ kind: "analyzing", image: "" });
+    const formData = new FormData();
+    formData.append("text", text);
+    appendLocalContext(formData);
+    trackProductEvent("analysis_started", { input_mode: "describe" });
+    try {
+      const [state, result] = await predict(formData);
+      if (state === BaseStates.ERROR || !result) throw new Error("unavailable");
+      if (result.requiresChoice && result.identificationCandidates?.length) {
+        setUiState({
+          kind: "choice",
+          image: null,
+          note: text,
+          inputMode: "describe",
+          candidates: result.identificationCandidates
+        });
+        return;
+      }
+      onScanComplete({
+        image: null,
+        note: text,
+        guidance: summarizePrediction(result),
+        disposalRoute: getDominantRoute(result),
+        bin: result.decision?.bin ?? getDominantBin(result) ?? undefined,
+        itemName: result.decision?.itemName ?? getDominantItemName(result),
+        searchQueries: result.decision?.searchQueries ?? getDominantSearchQueries(result),
+        inputMode: "describe",
+        decision: result.decision
+      });
+      setDescription("");
+      setUiState({ kind: "permission" });
+      trackProductEvent("analysis_succeeded", { input_mode: "describe" });
+    } catch {
+      trackProductEvent("analysis_failed", { input_mode: "describe" });
+      setUiState({
+        kind: "error",
+        code: "request",
+        title: "We need a little more detail",
+        message:
+          "Try a more specific item or material, such as plastic film, battery, or food-soiled paper."
+      });
+    }
+  };
+
+  const handleCandidateChoice = async (candidate: IdentificationCandidate) => {
+    if (uiState.kind !== "choice") return;
+    const choice = uiState;
+    setUiState({ kind: "analyzing", image: choice.image || "" });
+    const context = getLocalContext();
+    const decision = await decideCandidate(
+      candidate,
+      context.jurisdictionId,
+      context.serviceProfileId
+    );
+    if (!decision) {
+      setUiState({
+        kind: "error",
+        code: "request",
+        title: "Local rule not confirmed",
+        message:
+          "Choose your collection service in Settings, or check the material guide and official source."
+      });
+      return;
+    }
+    onScanComplete({
+      image: choice.image,
+      note: choice.note,
+      guidance: [decision.instruction, ...decision.preparation].join("\n"),
+      disposalRoute: decision.route,
+      bin: decision.bin,
+      itemName: candidate.name,
+      searchQueries: decision.searchQueries,
+      inputMode: choice.inputMode,
+      decision
+    });
+    setUiState({ kind: choice.inputMode === "photo" ? "ready" : "permission" });
+    trackProductEvent("analysis_succeeded", { input_mode: choice.inputMode });
+  };
+
+  const renderChoice = (state: Extract<ScanUiState, { kind: "choice" }>) => (
+    <div className="absolute inset-0 overflow-y-auto bg-[#0a0f0e] px-5 pb-24 pt-28 text-white">
+      <div className="mx-auto w-full max-w-lg">
+        <p className="text-xs font-bold uppercase tracking-[0.17em] text-teal-200">
+          Confirm the item
+        </p>
+        <h1 className="font-display mt-3 text-3xl font-semibold tracking-[-0.04em]">
+          Which item did you mean?
+        </h1>
+        <p className="mt-3 text-sm leading-6 text-white/60">
+          Scrapp found more than one plausible match. Choose one before a local rule is applied.
+        </p>
+        <div className="mt-7 space-y-3">
+          {state.candidates.map((candidate) => (
+            <button
+              key={candidate.id}
+              type="button"
+              onClick={() => void handleCandidateChoice(candidate)}
+              className="flex min-h-16 w-full items-center justify-between gap-4 rounded-[14px] border border-white/12 bg-white/[0.05] p-4 text-left transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-200">
+              <span>
+                <span className="block font-semibold">{candidate.name}</span>
+                <span className="mt-1 block text-sm text-white/55">{candidate.material}</span>
+              </span>
+              <span className="text-xs font-semibold text-teal-200">
+                {Math.round(candidate.confidence * 100)}% match
+              </span>
+            </button>
+          ))}
+        </div>
+        <Button
+          variant="outline"
+          className="mt-5 border-white/20 bg-transparent text-white hover:bg-white/10"
+          onClick={() =>
+            setUiState(
+              state.inputMode === "photo" && state.image
+                ? { kind: "review", image: state.image }
+                : { kind: "permission" }
+            )
+          }>
+          Back
+        </Button>
+      </div>
+    </div>
+  );
+
+  const renderDescribe = () => (
+    <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_50%_18%,#244640_0,transparent_34%),#0a0f0e] px-5 text-white">
+      <div className="w-full max-w-lg">
+        <p className="text-xs font-bold uppercase tracking-[0.17em] text-teal-200">
+          Describe an item
+        </p>
+        <h1 className="font-display mt-3 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
+          What are you trying to sort?
+        </h1>
+        <p className="mt-4 max-w-md text-sm leading-6 text-white/60">
+          Name the item, material, and condition. This searches Scrapp's verified local material
+          index without using vision.
+        </p>
+        <Textarea
+          autoFocus
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          onKeyDown={handleTextareaKeypress}
+          placeholder="Example: greasy pizza box"
+          className="mt-7 min-h-28 border-white/20 bg-white/[0.06] text-base text-white placeholder:text-white/45"
+        />
+        <Button
+          size="lg"
+          className="mt-3 w-full"
+          onClick={() => void handleDescribe()}
+          disabled={description.trim().length < 2}>
+          <ScanLine className="size-5" /> Check local guidance
+        </Button>
+      </div>
+    </div>
+  );
 
   const renderPermission = () => (
     <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_50%_22%,#244640_0,transparent_36%),#0a0f0e] px-5 text-white">
@@ -377,6 +591,10 @@ export function ScanView({
         </>
       );
     }
+    if (uiState.kind === "choice") return renderChoice(uiState);
+    if (inputMode === "describe" && uiState.kind === "analyzing")
+      return <div className="absolute inset-0 bg-[#0a0f0e]" />;
+    if (inputMode === "describe" && uiState.kind !== "error") return renderDescribe();
     if (uiState.kind === "permission") return renderPermission();
     if (uiState.kind === "error") return renderError(uiState);
     if (reviewImage)
@@ -402,7 +620,14 @@ export function ScanView({
   };
 
   const renderControls = () => {
-    if (activeTicket || uiState.kind === "permission" || uiState.kind === "error") return null;
+    if (
+      activeTicket ||
+      (inputMode === "describe" && uiState.kind !== "analyzing") ||
+      uiState.kind === "choice" ||
+      uiState.kind === "permission" ||
+      uiState.kind === "error"
+    )
+      return null;
     if (uiState.kind === "analyzing") {
       return (
         <div
@@ -538,6 +763,28 @@ export function ScanView({
               </div>
             </aside>
             <div className="relative min-w-0 flex-1">{stage}</div>
+          </div>
+        )}
+        {!activeTicket && uiState.kind !== "analyzing" && uiState.kind !== "choice" && (
+          <div className="absolute left-1/2 top-[max(0.75rem,env(safe-area-inset-top))] z-20 flex -translate-x-1/2 rounded-xl border border-white/12 bg-black/55 p-1 text-white backdrop-blur-xl">
+            <button
+              type="button"
+              onClick={() => {
+                setInputMode("photo");
+                setUiState({ kind: "permission" });
+              }}
+              className={`min-h-10 rounded-lg px-4 text-sm font-semibold ${inputMode === "photo" ? "bg-white text-black" : "text-white/70"}`}>
+              <CameraIcon className="mr-2 inline size-4" /> Photo
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setInputMode("describe");
+                setUiState({ kind: "permission" });
+              }}
+              className={`min-h-10 rounded-lg px-4 text-sm font-semibold ${inputMode === "describe" ? "bg-white text-black" : "text-white/70"}`}>
+              <MessageSquareText className="mr-2 inline size-4" /> Describe
+            </button>
           </div>
         )}
         {isMobile && (

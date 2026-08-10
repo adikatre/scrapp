@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { checkPhotoRateLimit, getClientIdentifier } from "@/lib/rateLimit";
 
 const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY ?? "";
 
@@ -15,6 +16,13 @@ const DEFAULT_WIDTH = 128;
  * directly from Google's CDN (no key in the final URL).
  */
 export async function GET(req: NextRequest) {
+  const limit = await checkPhotoRateLimit(getClientIdentifier(req));
+  if (!limit.success) {
+    return new NextResponse("Too many photo requests", {
+      status: 429,
+      headers: { "Retry-After": String(Math.max(1, Math.ceil((limit.reset - Date.now()) / 1000))) }
+    });
+  }
   if (!PLACES_API_KEY) {
     return new NextResponse("Places API key not configured", { status: 503 });
   }

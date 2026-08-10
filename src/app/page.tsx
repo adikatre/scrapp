@@ -294,6 +294,11 @@ export default function HomePage() {
             <Link href="/locations" prefetch={false}>
               Locations
             </Link>
+            <Link href="/guide">Guide</Link>
+            <Link href="/history">History</Link>
+            <Link href="/about">About</Link>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
             <a
               href="https://www.sandiego.gov/environmental-services/recycling"
               target="_blank"
