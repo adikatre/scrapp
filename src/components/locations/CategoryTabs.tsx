@@ -1,19 +1,18 @@
 "use client";
 
-import { Check, ChevronDown, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { Check, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
@@ -31,18 +30,42 @@ import { cn } from "@/lib/utils";
 
 interface CategoryTabsProps {
   activeCategory: LocationCategoryKey;
+  activeItem?: string | null;
   onSelectCategory: (key: LocationCategoryKey) => void;
   onSelectSubcategory: (key: LocationCategoryKey, item: string) => void;
 }
 
 export function CategoryTabs({
   activeCategory,
+  activeItem,
   onSelectCategory,
   onSelectSubcategory
 }: CategoryTabsProps) {
   const [open, setOpen] = useState(false);
   const active = LOCATION_CATEGORIES.find((category) => category.key === activeCategory);
   const ActiveIcon = active?.icon;
+  const desktopOptions = LOCATION_CATEGORIES.flatMap((category) => [
+    {
+      value: `category:${category.key}`,
+      categoryKey: category.key,
+      item: null,
+      label: category.label,
+      icon: category.icon
+    },
+    ...getItemSubcategories(category.key).map((subcategory) => ({
+      value: `item:${category.key}:${subcategory.item}`,
+      categoryKey: category.key,
+      item: subcategory.item,
+      label: `${category.label} — ${subcategory.label}`,
+      icon: category.icon
+    }))
+  ]);
+  const selectedSubcategory = getItemSubcategories(activeCategory).find(
+    (subcategory) => subcategory.item === activeItem
+  );
+  const desktopValue = selectedSubcategory
+    ? `item:${activeCategory}:${selectedSubcategory.item}`
+    : `category:${activeCategory}`;
 
   const selectCategory = (key: LocationCategoryKey) => {
     onSelectCategory(key);
@@ -117,61 +140,51 @@ export function CategoryTabs({
       </div>
 
       <div className="hidden lg:block">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="w-full justify-between">
-              <span className="flex items-center gap-2">
-                {ActiveIcon && <ActiveIcon className="size-4" />}
-                {active?.label ?? "Category"}
-              </span>
-              <ChevronDown className="size-4 text-muted-foreground" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-72">
-            <DropdownMenuLabel>Disposal category</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {LOCATION_CATEGORIES.map((category) => {
-              const Icon = category.icon;
-              const selected = category.key === activeCategory;
-              const subcategories = getItemSubcategories(category.key);
-              if (subcategories.length > 0) {
-                return (
-                  <DropdownMenuSub key={category.key}>
-                    <DropdownMenuSubTrigger
-                      className={selected ? "bg-primary/10 text-primary" : ""}>
+        <Select
+          value={desktopValue}
+          onValueChange={(value) => {
+            const option = desktopOptions.find((candidate) => candidate.value === value);
+            if (!option) return;
+            if (option.item) onSelectSubcategory(option.categoryKey, option.item);
+            else onSelectCategory(option.categoryKey);
+          }}>
+          <SelectTrigger
+            aria-label="Disposal category"
+            className="h-11 w-full rounded-[11px] bg-background px-4 shadow-none">
+            <SelectValue placeholder="Choose a disposal category" />
+          </SelectTrigger>
+          <SelectContent className="w-[var(--radix-select-trigger-width)] rounded-xl">
+            <SelectGroup>
+              <SelectLabel>Disposal categories</SelectLabel>
+              {desktopOptions
+                .filter((option) => option.item === null)
+                .map((option) => {
+                  const Icon = option.icon;
+                  return (
+                    <SelectItem key={option.value} value={option.value} className="min-h-10">
                       <Icon className="size-4" />
-                      {category.label}
-                      <ChevronRight className="ml-auto size-4" />
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent>
-                      <DropdownMenuItem onSelect={() => onSelectCategory(category.key)}>
-                        All {category.label}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      {subcategories.map((sub) => (
-                        <DropdownMenuItem
-                          key={sub.item}
-                          onSelect={() => onSelectSubcategory(category.key, sub.item)}>
-                          {sub.label}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-                );
-              }
-              return (
-                <DropdownMenuItem
-                  key={category.key}
-                  onSelect={() => onSelectCategory(category.key)}
-                  className={selected ? "bg-primary/10 text-primary" : ""}>
-                  <Icon className="size-4" />
-                  {category.label}
-                  {selected && <Check className="ml-auto size-4" />}
-                </DropdownMenuItem>
-              );
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
+                      {option.label}
+                    </SelectItem>
+                  );
+                })}
+            </SelectGroup>
+            <SelectSeparator />
+            <SelectGroup>
+              <SelectLabel>Specific items</SelectLabel>
+              {desktopOptions
+                .filter((option) => option.item !== null)
+                .map((option) => {
+                  const Icon = option.icon;
+                  return (
+                    <SelectItem key={option.value} value={option.value} className="min-h-10">
+                      <Icon className="size-4" />
+                      {option.label}
+                    </SelectItem>
+                  );
+                })}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
       </div>
     </>
   );

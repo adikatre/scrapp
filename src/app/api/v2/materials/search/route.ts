@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { searchMaterials } from "@/lib/rules/engine";
+import { materialCatalog } from "@/lib/rules/catalog";
 
 export async function GET(request: Request) {
   const query = new URL(request.url).searchParams.get("q")?.trim() || "";
   if (query.length < 2) return NextResponse.json({ materials: [] });
-  const materials = searchMaterials(query).map((rule) => ({
-    id: rule.slug,
-    name: rule.materialName,
-    aliases: rule.aliases,
-    route: rule.route
+  const materials = materialCatalog.search(query).map((material) => ({
+    id: material.id,
+    name: material.name,
+    aliases: material.aliases
   }));
   return NextResponse.json({ materials });
 }

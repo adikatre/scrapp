@@ -42,11 +42,10 @@ function LocationsPageContent() {
 
   const savedOnMount = useMemo(() => readSavedLocationPrefs(), []);
 
-  const [activeCategory, setActiveCategory] = useState<LocationCategoryKey>(() =>
+  const activeCategory =
     !searchParams.get("category") && savedOnMount?.category
       ? (savedOnMount.category as LocationCategoryKey)
-      : initialCategory
-  );
+      : initialCategory;
   const [locationLabel, setLocationLabel] = useState(() => savedOnMount?.label ?? "San Diego, CA");
   const [userCoords, setUserCoords] = useState<{
     lat: number;
@@ -103,10 +102,7 @@ function LocationsPageContent() {
       const lat = opts?.lat ?? userCoords?.lat;
       const lng = opts?.lng ?? userCoords?.lng;
 
-      const itemQueries =
-        activeCategory === initialCategory && scannedQueries.length > 0
-          ? scannedQueries
-          : undefined;
+      const itemQueries = scannedQueries.length > 0 ? scannedQueries : undefined;
 
       const { places: results, error: searchError } = await searchPlaces({
         categoryKey: activeCategory,
@@ -142,20 +138,8 @@ function LocationsPageContent() {
         });
       }
     },
-    [
-      activeCategory,
-      initialCategory,
-      isSearchable,
-      locationLabel,
-      userCoords,
-      scannedItem,
-      scannedQueries
-    ]
+    [activeCategory, isSearchable, locationLabel, userCoords, scannedItem, scannedQueries]
   );
-
-  useEffect(() => {
-    setActiveCategory(initialCategory);
-  }, [initialCategory]);
 
   const runSearchRef = useRef(runSearch);
   useEffect(() => {
@@ -216,23 +200,33 @@ function LocationsPageContent() {
     };
   }, []);
 
+  const scannedQueriesKey = scannedQueries.join("\u001f");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: URL context must retrigger the latest search callback.
   useEffect(() => {
     if (!locationReady) return;
     runSearchRef.current();
-  }, [locationReady]);
+  }, [activeCategory, locationReady, scannedItem, scannedQueriesKey]);
 
   const handleSelectSubcategory = (key: LocationCategoryKey, item: string) => {
-    const params = mergeLocationSearchParams(searchParamsObj, { category: key, item });
+    const params = mergeLocationSearchParams(searchParamsObj, {
+      category: key,
+      item,
+      queries: [],
+      bin: null
+    });
     const href = buildLocationSearchHref(params);
     window.history.replaceState(null, "", href);
-    setActiveCategory(key);
   };
 
   const handleSelectCategory = (key: LocationCategoryKey) => {
-    const params = mergeLocationSearchParams(searchParamsObj, { category: key, item: null });
+    const params = mergeLocationSearchParams(searchParamsObj, {
+      category: key,
+      item: null,
+      queries: [],
+      bin: null
+    });
     const href = buildLocationSearchHref(params);
     window.history.replaceState(null, "", href);
-    setActiveCategory(key);
   };
 
   const filteredPlaces = useMemo(() => {
@@ -360,15 +354,11 @@ function LocationsPageContent() {
       : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${place.name}, ${place.address}`)}&destination_place_id=${encodeURIComponent(place.id)}`;
 
   const content = (
-    <div className="flex min-h-screen flex-col gap-4 bg-background px-4 pt-4 pb-28 sm:px-6 sm:pt-20 lg:h-[100dvh] lg:flex-row lg:gap-6 lg:overflow-hidden lg:pb-6">
-      <Card className="flex w-full flex-col rounded-[20px] border-border shadow-sm lg:h-full lg:w-[min(31rem,40vw)] lg:flex-none">
-        <CardHeader className="shrink-0">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">
-            Local disposal
-          </p>
-          <h1 className="font-display flex items-center gap-2 text-2xl font-semibold tracking-[-0.03em]">
-            <MapPin className="text-primary" />
-            Find a Drop-Off Place
+    <div className="route-locations flex min-h-[100dvh] flex-col gap-6 bg-background px-4 pt-6 pb-28 sm:px-6 sm:pt-24 lg:h-[100dvh] lg:flex-row lg:gap-0 lg:overflow-hidden lg:pb-6">
+      <Card className="route-locations__panel flex w-full flex-col rounded-none border-0 bg-transparent p-0 shadow-none lg:h-full lg:w-[min(35rem,44vw)] lg:flex-none lg:border-r lg:border-border lg:pr-8">
+        <CardHeader className="route-locations__header shrink-0 px-0 pt-0">
+          <h1 className="font-display text-3xl font-semibold tracking-[-0.045em] sm:text-4xl">
+            Find a drop-off
           </h1>
           {scannedItem && category && (
             <p className="text-sm text-muted-foreground mt-1">
@@ -381,7 +371,7 @@ function LocationsPageContent() {
           )}
         </CardHeader>
 
-        <CardContent className="flex flex-grow flex-col gap-4 overflow-visible lg:overflow-hidden">
+        <CardContent className="flex flex-grow flex-col gap-4 overflow-visible px-0 pb-0 lg:overflow-hidden">
           <div className="shrink-0">
             <LocationSearchWidget
               value={locationLabel}
@@ -403,12 +393,13 @@ function LocationsPageContent() {
 
           <CategoryTabs
             activeCategory={activeCategory}
+            activeItem={scannedItem}
             onSelectCategory={handleSelectCategory}
             onSelectSubcategory={handleSelectSubcategory}
           />
 
           {isSearchable && (
-            <fieldset className="grid grid-cols-2 rounded-xl bg-muted p-1 lg:hidden">
+            <fieldset className="grid grid-cols-2 border-y border-border py-1 lg:hidden">
               <legend className="sr-only">Results view</legend>
               <Button
                 type="button"
@@ -475,7 +466,7 @@ function LocationsPageContent() {
               </p>
 
               <section
-                className="min-h-0 flex-1 space-y-3 pr-1 lg:overflow-y-auto"
+                className="min-h-0 flex-1 space-y-0 border-t border-border pr-1 lg:overflow-y-auto"
                 aria-label="Drop-off results">
                 {isLoading && (
                   <>
@@ -562,7 +553,7 @@ function LocationsPageContent() {
             />
           </APIProvider>
         ) : (
-          <div className="flex min-h-72 flex-1 items-center justify-center rounded-[20px] border border-dashed border-border bg-muted/40 p-8 text-center">
+          <div className="route-map-fallback flex min-h-72 flex-1 items-center justify-center border border-border bg-muted/30 p-8 text-center">
             <div>
               <MapPin className="mx-auto size-8 text-muted-foreground" />
               <p className="mt-4 font-semibold">Map unavailable</p>
@@ -582,7 +573,7 @@ export default function LocationsPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-background p-6 pt-20">
+        <div className="min-h-[100dvh] bg-background p-6 pt-24">
           <Skeleton className="h-[80vh] w-full" />
         </div>
       }>

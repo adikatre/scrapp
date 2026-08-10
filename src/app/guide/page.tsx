@@ -1,74 +1,188 @@
 import { ArrowRight, Search } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
-import { PageShell } from "@/components/PageShell";
 import { listMaterialRules, searchMaterials } from "@/lib/rules/engine";
-import { cn } from "@/lib/utils";
 
-const binColor: Record<string, string> = {
-  "Blue Bin (Recycling)": "bg-blue-600",
-  "Green Bin (Organics)": "bg-emerald-600",
-  "Gray Bin (Trash)": "bg-slate-600",
-  "Special Drop-off": "bg-primary"
-};
+const guides = [
+  {
+    title: "Blue bin",
+    bin: "Blue Bin (Recycling)",
+    image: "/route-label/blue-bin-specimen.webp",
+    className: "route-guide-blue",
+    examples: ["Cardboard", "Metal cans", "Rigid containers"]
+  },
+  {
+    title: "Green bin",
+    bin: "Green Bin (Organics)",
+    image: "/route-label/green-bin-specimen.webp",
+    className: "route-guide-green",
+    examples: ["Food scraps", "Yard trimmings", "Food-soiled paper"]
+  },
+  {
+    title: "Trash",
+    bin: "Gray Bin (Trash)",
+    image: "/route-label/gray-bin-specimen.webp",
+    className: "route-guide-gray",
+    examples: ["Plastic film", "Broken ceramics", "Mixed materials"]
+  }
+] as const;
 
 export const metadata = { title: "San Diego disposal guide - Scrapp" };
 
 export default async function GuidePage({
   searchParams
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; route?: string }>;
 }) {
-  const query = (await searchParams).q?.trim() || "";
-  const rules = query ? searchMaterials(query, 20) : listMaterialRules();
+  const params = await searchParams;
+  const query = params.q?.trim() || "";
+  const route = params.route?.trim().toLowerCase() || "";
+  const allRules = query ? searchMaterials(query, 20) : listMaterialRules();
+  const rules = route
+    ? allRules.filter((rule) => {
+        if (route === "recycling") return rule.bin === "Blue Bin (Recycling)";
+        if (route === "organics") return rule.bin === "Green Bin (Organics)";
+        if (route === "trash") return rule.bin === "Gray Bin (Trash)";
+        return true;
+      })
+    : allRules;
+  const showingResults = Boolean(query || route);
 
   return (
-    <PageShell
-      title="Know before you throw."
-      description="Browse verified City of San Diego guidance without taking a photo. Confirm your service provider before relying on a curbside answer.">
-      <form action="/guide" className="relative max-w-2xl">
-        <label htmlFor="guide-search" className="sr-only">
-          Search materials
-        </label>
-        <Search className="pointer-events-none absolute left-4 top-4 size-5 text-muted-foreground" />
-        <input
-          id="guide-search"
-          name="q"
-          type="search"
-          defaultValue={query}
-          placeholder="Try battery, pizza box, plastic bag."
-          className="min-h-13 w-full rounded-xl border bg-card pl-12 pr-4 text-base shadow-sm"
-        />
-      </form>
-
-      <div className="mt-10 border-y border-border/70">
-        {rules.map((rule) => (
+    <div className="min-h-[100dvh] pb-28 pt-8 sm:pb-16 sm:pt-24">
+      <div className="mx-auto grid max-w-[96rem] gap-10 px-5 sm:px-8 lg:grid-cols-[minmax(17rem,0.58fr)_minmax(0,1.72fr)] lg:gap-8 lg:px-12">
+        <aside className="lg:sticky lg:top-24 lg:self-start">
           <Link
-            key={rule.id}
-            href={`/guide/${rule.slug}`}
-            className="group grid min-h-20 grid-cols-[auto_1fr_auto] items-center gap-4 border-b border-border/70 py-4 last:border-b-0 hover:bg-accent/45">
-            <span className={cn("size-3 rounded-full", binColor[rule.bin])} aria-hidden="true" />
-            <span>
-              <span className="block font-semibold">{rule.materialName}</span>
-              <span className="mt-1 block text-sm text-muted-foreground">{rule.bin}</span>
-            </span>
-            <ArrowRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+            href="/"
+            className="route-display inline-flex min-h-11 items-center text-xl font-semibold tracking-[-0.03em] sm:hidden">
+            Scrapp
           </Link>
-        ))}
-      </div>
-      {!rules.length && (
-        <div className="max-w-xl py-14">
-          <h2 className="font-display text-2xl font-semibold">No verified match yet.</h2>
-          <p className="mt-3 leading-7 text-muted-foreground">
-            Try the material rather than the brand name, or use a photo so Scrapp can suggest
-            candidates.
+          <h1 className="route-display mt-8 max-w-sm text-4xl font-semibold leading-[0.96] tracking-[-0.04em] sm:mt-0 sm:text-6xl">
+            What are you getting rid of?
+          </h1>
+          <form
+            action="/guide"
+            className="relative mt-10 max-w-md border-b-2 border-foreground pb-2">
+            <label htmlFor="guide-search" className="sr-only">
+              Search an item or material
+            </label>
+            <Search
+              className="pointer-events-none absolute left-0 top-3 size-6 text-foreground"
+              aria-hidden
+            />
+            <input
+              id="guide-search"
+              name="q"
+              type="search"
+              defaultValue={query}
+              placeholder="Search an item or material"
+              className="min-h-12 w-full border-0 bg-transparent pl-10 pr-2 text-base shadow-none outline-none placeholder:text-muted-foreground focus-visible:ring-0"
+            />
+          </form>
+          <p className="mt-5 max-w-sm text-sm leading-6 text-muted-foreground">
+            Browse verified City of San Diego guidance. Confirm your service provider before using a
+            curbside answer.
           </p>
-          <Link
-            href="/cam"
-            className="mt-5 inline-flex font-semibold text-primary underline underline-offset-4">
-            Scan the item
-          </Link>
-        </div>
-      )}
-    </PageShell>
+        </aside>
+
+        <main className="min-w-0 lg:border-l lg:border-border lg:pl-8">
+          {showingResults ? (
+            <section aria-labelledby="guide-results-title">
+              <div className="flex flex-wrap items-end justify-between gap-5 border-b border-border pb-6">
+                <div>
+                  <h2 id="guide-results-title" className="route-display text-3xl font-semibold">
+                    {query ? `Matches for "${query}"` : `${route} guidance`}
+                  </h2>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {rules.length} {rules.length === 1 ? "verified material" : "verified materials"}
+                  </p>
+                </div>
+                <Link href="/guide" className="route-text-link">
+                  View the full guide
+                </Link>
+              </div>
+              <div className="route-result-list">
+                {rules.map((rule) => (
+                  <Link
+                    key={rule.id}
+                    href={`/guide/${rule.slug}`}
+                    className="group grid min-h-20 grid-cols-[1fr_auto] items-center gap-5 border-b border-border py-5">
+                    <span>
+                      <span className="route-display block text-xl font-semibold">
+                        {rule.materialName}
+                      </span>
+                      <span className="mt-1 block text-sm text-muted-foreground">{rule.bin}</span>
+                    </span>
+                    <ArrowRight
+                      className="size-5 transition-transform duration-200 group-hover:translate-x-1"
+                      aria-hidden
+                    />
+                  </Link>
+                ))}
+              </div>
+              {!rules.length ? (
+                <div className="py-14">
+                  <h2 className="route-display text-3xl font-semibold">No verified match yet.</h2>
+                  <p className="mt-3 max-w-xl leading-7 text-muted-foreground">
+                    Try the material instead of the brand name, or show Scrapp a photo.
+                  </p>
+                  <Link href="/cam" className="route-text-link mt-6">
+                    Scan the item <ArrowRight className="size-4" aria-hidden />
+                  </Link>
+                </div>
+              ) : null}
+            </section>
+          ) : (
+            <>
+              <section className="route-guide-fields" aria-label="Curbside guide">
+                {guides.map((guide) => (
+                  <Link
+                    key={guide.title}
+                    href={`/guide?route=${guide.title === "Blue bin" ? "recycling" : guide.title === "Green bin" ? "organics" : "trash"}`}
+                    className={`route-guide-field ${guide.className}`}>
+                    <Image
+                      src={guide.image}
+                      alt=""
+                      fill
+                      sizes="(max-width: 1024px) 92vw, 31vw"
+                      className="object-cover"
+                    />
+                    <span className="route-guide-copy">
+                      <strong>{guide.title}</strong>
+                      <span>{guide.examples.join("\n")}</span>
+                      <ArrowRight className="mt-auto size-6" aria-hidden />
+                    </span>
+                  </Link>
+                ))}
+              </section>
+              <section className="mt-12" aria-labelledby="special-route-title">
+                <div className="mb-6 max-w-xl">
+                  <h2
+                    id="special-route-title"
+                    className="route-display text-3xl font-semibold tracking-[-0.03em] sm:text-5xl">
+                    Needs a special route
+                  </h2>
+                </div>
+                <Link href="/locations" className="route-guide-special">
+                  <Image
+                    src="/route-label/special-route-specimens.webp"
+                    alt="Batteries, electronics, paint, and bulky furniture"
+                    fill
+                    sizes="(max-width: 1024px) 92vw, 68vw"
+                    className="object-cover"
+                  />
+                  <span className="route-guide-special-labels">
+                    <strong>Batteries</strong>
+                    <strong>Electronics</strong>
+                    <strong>Paint</strong>
+                    <strong>Bulky items</strong>
+                  </span>
+                </Link>
+              </section>
+            </>
+          )}
+        </main>
+      </div>
+    </div>
   );
 }

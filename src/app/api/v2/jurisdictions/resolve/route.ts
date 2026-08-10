@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
-import { SAN_DIEGO, SAN_DIEGO_CITY_HOME, SAN_DIEGO_UNKNOWN_SERVICE } from "@/lib/rules/san-diego";
+import { ruleRepository } from "@/lib/rules/catalog";
 
 export async function GET(request: Request) {
   const postalCode = new URL(request.url).searchParams.get("postalCode")?.trim() || "";
-  if (/^921\d{2}$/.test(postalCode)) {
+  const bundle = postalCode ? ruleRepository.resolvePostalCode(postalCode) : null;
+  if (bundle) {
     return NextResponse.json({
-      jurisdiction: SAN_DIEGO,
-      serviceProfiles: [SAN_DIEGO_CITY_HOME, SAN_DIEGO_UNKNOWN_SERVICE],
+      jurisdiction: bundle.jurisdiction,
+      serviceProfiles: bundle.serviceProfiles,
       requiresServiceConfirmation: true
     });
   }

@@ -42,7 +42,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Start the backend on port 5000 before scanning.
+Open [http://localhost:3000](http://localhost:3000). Identification and disposal decisions run inside Next.js.
 
 ### Scripts
 
@@ -58,8 +58,9 @@ Open [http://localhost:3000](http://localhost:3000). Start the backend on port 5
 
 | Variable | Purpose |
 |---|---|
-| `NEXT_PRIVATE_BACKEND_URL` | Flask backend URL (e.g. `http://localhost:5000`) |
-| `BACKEND_API_KEY` | Shared secret sent to the backend as `Authorization: Bearer <key>`. Must match `BACKEND_API_KEY` on the backend exactly, or every scan comes back `401`. [backend.ts](src/lib/backend.ts) throws at startup if it's unset |
+| `DETECTION_PROVIDER` | Active detection adapter. `openai` is the only production implementation today. |
+| `OPENAI_API_KEY` | Server-only credential used by the OpenAI detection provider. |
+| `OPENAI_MODEL` | Detection model override; defaults to `gpt-4o-mini`. |
 | `GOOGLE_PLACES_API_KEY` | Server-side Places search (keep secret) |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Client-side map tiles (restrict by domain in production) |
 
@@ -72,7 +73,8 @@ Only `NEXT_PUBLIC_`-prefixed variables reach the browser; the rest stay server-s
 | `src/app/page.tsx` | Landing page |
 | `src/app/cam/` | Scan flow (mobile and desktop UIs) |
 | `src/app/locations/` | Map and place search |
-| `src/lib/backend.ts` | Server action that proxies to `/predict` (adds the bearer token) |
+| `src/lib/detection/` | Provider-neutral detection service and OpenAI adapter |
+| `src/lib/rules/` | Material catalog, rule repository, jurisdiction bundles, and decision engine |
 | `src/lib/googlePlaces.ts` | Places API search and details |
 | `src/lib/curated/` | Curated local drop-off programs |
 | `src/app/api/place-photo/` | Route handler that proxies Places photos so the key stays server-side |
@@ -139,14 +141,14 @@ Two known quirks of the upstream data, both handled by the generator:
 ### Architecture
 
 ```
-User → Next.js PWA → server action → Flask /predict → GPT-4o-mini
-                   → Google Places API (locations search)
-                   → Google Maps JS API (map tiles)
+User → Next.js API → Detection service → OpenAI provider
+                  → Decision engine → jurisdiction rule repository
+                  → Google Places API / Google Maps JS API
 ```
 
 ## Deployment
 
-Deploy the frontend to Vercel and the backend to Railway or Render. Set `NEXT_PRIVATE_BACKEND_URL` to your production backend URL, set the same `BACKEND_API_KEY` on both sides, and restrict `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` to your domain in Google Cloud Console.
+Deploy the Next.js application as one service. Configure the server-only OpenAI and Places keys, then restrict `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` to the production domain in Google Cloud Console.
 
 For a full launch checklist, budget, metrics, distribution, and ops, see [LAUNCH_GUIDE.md](LAUNCH_GUIDE.md).
 
@@ -154,7 +156,7 @@ For a full launch checklist, budget, metrics, distribution, and ops, see [LAUNCH
 
 **Frontend (this repo):** Next.js 15, React 19, TypeScript, Tailwind CSS 4, Radix UI, Google Maps
 
-**Backend:** [scrapp-backend](https://github.com/adikatre/scrapp-backend), Flask, GPT-4o-mini vision
+**Backend:** Next.js Route Handlers, provider-neutral detection, OpenAI Responses, versioned TypeScript rules
 
 ## Made By
 

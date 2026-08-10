@@ -16,28 +16,23 @@ export function PageShell({
   className?: string;
 }) {
   return (
-    <div className={cn("min-h-screen pb-28 pt-6 sm:pb-16 sm:pt-24", className)}>
-      <div className="mx-auto w-full max-w-6xl px-5 sm:px-8">
-        <header className="flex flex-col gap-6 border-b border-border/70 pb-8 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
-              <span className="flex size-8 items-center justify-center rounded-[10px] bg-primary text-primary-foreground">
-                S
-              </span>
-              Scrapp
-            </Link>
-            <h1 className="font-display mt-7 max-w-3xl text-3xl font-semibold tracking-[-0.04em] sm:text-5xl">
-              {title}
-            </h1>
-            <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">
-              {description}
-            </p>
-          </div>
-          {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
+    <div className={cn("min-h-[100dvh] pb-24 pt-6 sm:pb-14 sm:pt-24", className)}>
+      <div className="mx-auto grid w-full max-w-[96rem] gap-10 px-5 sm:px-8 lg:grid-cols-[minmax(16rem,0.62fr)_minmax(0,1.38fr)] lg:gap-16 lg:px-12">
+        <header className="lg:sticky lg:top-24 lg:self-start">
+          <Link
+            href="/"
+            className="route-display inline-flex min-h-11 items-center text-lg font-semibold tracking-[-0.03em] text-foreground sm:hidden">
+            Scrapp
+          </Link>
+          <h1 className="route-display mt-8 max-w-xl text-4xl font-semibold leading-[0.96] tracking-[-0.04em] sm:mt-0 sm:text-6xl">
+            {title}
+          </h1>
+          <p className="mt-5 max-w-md text-base leading-7 text-muted-foreground">{description}</p>
+          {actions ? <div className="mt-7 flex flex-wrap gap-2">{actions}</div> : null}
         </header>
-        <div className="py-8 sm:py-12">{children}</div>
+        <div className="min-w-0 border-t border-border pt-8 lg:border-t-0 lg:border-l lg:pl-12 lg:pt-0">
+          {children}
+        </div>
       </div>
     </div>
   );

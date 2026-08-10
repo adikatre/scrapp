@@ -17,7 +17,7 @@ const displayFamily = Sora({
 });
 
 export const metadata: Metadata = {
-  title: "Scrapp — Snap it. Sort it right.",
+  title: "Scrapp | Snap it. Sort it right.",
   description: "Photo-first disposal guidance and nearby drop-off options for San Diego.",
   appleWebApp: {
     capable: true,

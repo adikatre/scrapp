@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { resolveDisposalDecision, searchMaterials } from "../engine";
 
+const context = { jurisdictionId: "us-ca-san-diego", serviceProfileId: "sd-city-serviced-home" };
+
 describe("rules engine", () => {
   it("resolves exact San Diego material aliases deterministically", () => {
     const decision = resolveDisposalDecision({
-      candidate: { name: "water bottle", material: "plastic bottle", confidence: 0.93 }
+      candidate: { name: "water bottle", material: "plastic bottle", confidence: 0.93 },
+      ...context
     });
     expect(decision?.bin).toBe("Blue Bin (Recycling)");
     expect(decision?.source.verification).toBe("official");
@@ -13,7 +16,8 @@ describe("rules engine", () => {
 
   it("keeps plastic film out of recycling", () => {
     const decision = resolveDisposalDecision({
-      candidate: { name: "grocery bag", material: "plastic film", confidence: 0.89 }
+      candidate: { name: "grocery bag", material: "plastic film", confidence: 0.89 },
+      ...context
     });
     expect(decision?.bin).toBe("Gray Bin (Trash)");
     expect(decision?.locationEligible).toBe(false);
@@ -23,7 +27,8 @@ describe("rules engine", () => {
     expect(
       resolveDisposalDecision({
         candidate: { name: "battery", material: "battery", confidence: 0.9 },
-        jurisdictionId: "us-ny-new-york"
+        jurisdictionId: "us-ny-new-york",
+        serviceProfileId: "unknown"
       })
     ).toBeNull();
   });
@@ -32,7 +37,8 @@ describe("rules engine", () => {
     expect(
       resolveDisposalDecision({
         candidate: { name: "cardboard", material: "cardboard", confidence: 1 },
-        serviceProfileId: "unknown"
+        jurisdictionId: "us-ca-san-diego",
+        serviceProfileId: "sd-service-unknown"
       })
     ).toBeNull();
   });

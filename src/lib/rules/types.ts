@@ -41,8 +41,24 @@ export type ServiceProfile = {
   providerName?: string;
 };
 
+export type MaterialDefinition = {
+  id: string;
+  name: string;
+  aliases: string[];
+  packagingForms?: string[];
+  hazards?: string[];
+  translations?: Record<string, { name: string; aliases: string[] }>;
+};
+
+export type RuleScope =
+  | { level: "service-profile"; ids: string[] }
+  | { level: "municipality"; id: string }
+  | { level: "region"; id: string }
+  | { level: "country"; id: string };
+
 export type MaterialRule = {
   id: string;
+  materialId?: string;
   slug: string;
   materialName: string;
   aliases: string[];
@@ -57,10 +73,21 @@ export type MaterialRule = {
   sourceId: string;
   jurisdictionId: string;
   serviceProfileIds?: string[];
+  scope?: RuleScope;
   effectiveFrom: string;
   effectiveTo?: string;
   priority: number;
   status: "active" | "draft" | "expired";
+};
+
+export type PostalCoverage = { country: string; postalCodePattern: string };
+
+export type JurisdictionBundle = {
+  jurisdiction: Jurisdiction;
+  serviceProfiles: ServiceProfile[];
+  sources: RuleSource[];
+  rules: MaterialRule[];
+  postalCoverage: PostalCoverage[];
 };
 
 export type DisposalDecision = {

@@ -115,7 +115,7 @@ describe("rate-limit", () => {
   });
 
   // Skip rate limiter tests that require Upstash or have issues with the mock
-  describe.skip("checkScanRateLimit", () => {
+  describe("checkScanRateLimit", () => {
     it("returns allowed result", async () => {
       const result = await checkScanRateLimit("test-client");
       expect(result.success).toBe(true);
@@ -130,7 +130,7 @@ describe("rate-limit", () => {
     });
   });
 
-  describe.skip("checkPlacesRateLimit", () => {
+  describe("checkPlacesRateLimit", () => {
     it("returns allowed result", async () => {
       const result = await checkPlacesRateLimit("test-client");
       expect(result.success).toBe(true);
@@ -138,7 +138,7 @@ describe("rate-limit", () => {
     });
   });
 
-  describe.skip("checkPhotoRateLimit", () => {
+  describe("checkPhotoRateLimit", () => {
     it("returns allowed result", async () => {
       const result = await checkPhotoRateLimit("test-client");
       expect(result.success).toBe(true);

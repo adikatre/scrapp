@@ -10,9 +10,7 @@ import {
   Navigation,
   Phone
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { trackProductEvent } from "@/lib/analytics";
 import { formatDistance } from "@/lib/geo";
 import type { Place, PlaceDetails } from "@/lib/types";
@@ -43,51 +41,55 @@ export function PlaceCard({
   directionsUrl
 }: PlaceCardProps) {
   return (
-    <Card
-      className={`overflow-hidden rounded-[18px] border bg-card p-0 transition-[border-color,box-shadow] duration-200 ${isSelected ? "border-primary ring-2 ring-primary/25" : "border-border"}`}>
+    <article
+      className={`route-place ${isSelected ? "is-selected" : ""}`}
+      data-verified={place.curated ? "true" : "false"}>
       <button
         type="button"
         onClick={onSelect}
         aria-pressed={isSelected}
-        className="flex min-h-20 w-full items-start gap-3 p-4 text-left hover:bg-muted/50">
-        {place.photoName && !hasFailedImage && (
-          <img
-            src={`/api/place-photo?name=${encodeURIComponent(place.photoName)}&w=128`}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            className="size-14 shrink-0 rounded-xl bg-muted object-cover"
-            onError={() => {
-              if (place.photoName) onImageError(place.photoName);
-            }}
-          />
-        )}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="font-display font-semibold leading-snug">{place.name}</h3>
-            {place.distanceMiles != null && (
-              <Badge variant="secondary" className="shrink-0">
-                {formatDistance(place.distanceMiles)}
-              </Badge>
-            )}
-          </div>
-          <p className="mt-1 flex items-start gap-2 text-sm leading-5 text-muted-foreground">
-            <Compass className="mt-0.5 size-4 shrink-0" />
-            {place.address}
-          </p>
-          <Badge variant={place.curated ? "default" : "outline"} className="mt-2">
-            {place.curated ? "Verified acceptance" : "Call to confirm"}
-          </Badge>
+        className="route-place__select">
+        <div className="route-place__image" aria-hidden="true">
+          {place.photoName && !hasFailedImage ? (
+            <img
+              src={`/api/place-photo?name=${encodeURIComponent(place.photoName)}&w=176`}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              onError={() => {
+                if (place.photoName) onImageError(place.photoName);
+              }}
+            />
+          ) : (
+            <Compass />
+          )}
         </div>
+
+        <div className="min-w-0">
+          <span className="route-place__status">
+            {place.curated ? "Verified acceptance" : "Discovery result - call to confirm"}
+          </span>
+          <h3>{place.name}</h3>
+          <p className="route-place__address">
+            <Compass aria-hidden="true" />
+            <span>{place.address}</span>
+          </p>
+        </div>
+
+        {place.distanceMiles != null && (
+          <span className="route-place__distance">{formatDistance(place.distanceMiles)}</span>
+        )}
       </button>
+
       {place.note && (
-        <p className="mx-4 flex items-start gap-2 rounded-xl bg-primary/8 p-3 text-sm leading-5 text-muted-foreground">
-          <AlertCircle className="mt-0.5 size-4 shrink-0 text-primary" />
-          {place.note}
+        <p className="route-place__note">
+          <AlertCircle aria-hidden="true" />
+          <span>{place.note}</span>
         </p>
       )}
-      <div className="flex flex-wrap gap-2 px-4 py-3">
-        <Button size="sm" variant="outline" asChild>
+
+      <div className="route-place__actions">
+        <Button size="sm" asChild>
           <a
             href={directionsUrl(place)}
             target="_blank"
@@ -107,7 +109,7 @@ export function PlaceCard({
           disabled={isLoadingDetails}
           aria-expanded={isExpanded}>
           {isLoadingDetails ? (
-            "Loading…"
+            "Loading..."
           ) : isExpanded ? (
             <>
               <ChevronUp className="size-4" /> Less
@@ -119,41 +121,33 @@ export function PlaceCard({
           )}
         </Button>
       </div>
+
       {isExpanded && details && (
-        <div className="space-y-2 border-t border-border px-4 py-4 text-sm">
+        <div className="route-place__details">
           {details.openNow != null && (
-            <p className="flex items-center gap-2">
-              <Clock className="size-4" />
-              <span
-                className={
-                  details.openNow ? "font-semibold text-primary" : "text-muted-foreground"
-                }>
+            <p>
+              <Clock aria-hidden="true" />
+              <span className={details.openNow ? "text-primary" : "text-muted-foreground"}>
                 {details.openNow ? "Open now" : "Closed now"}
               </span>
             </p>
           )}
           {details.phone && (
-            <p className="flex items-center gap-2">
-              <Phone className="size-4" />
-              <a href={`tel:${details.phone}`} className="text-primary underline">
-                {details.phone}
-              </a>
+            <p>
+              <Phone aria-hidden="true" />
+              <a href={`tel:${details.phone}`}>{details.phone}</a>
             </p>
           )}
           {details.website && (
-            <p className="flex items-center gap-2">
-              <Globe className="size-4" />
-              <a
-                href={details.website}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="truncate text-primary underline">
+            <p>
+              <Globe aria-hidden="true" />
+              <a href={details.website} target="_blank" rel="noreferrer noopener">
                 Website
               </a>
             </p>
           )}
           {details.weekdayDescriptions && (
-            <ul className="space-y-1 text-muted-foreground">
+            <ul>
               {details.weekdayDescriptions.map((line) => (
                 <li key={line}>{line}</li>
               ))}
@@ -161,6 +155,6 @@ export function PlaceCard({
           )}
         </div>
       )}
-    </Card>
+    </article>
   );
 }

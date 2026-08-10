@@ -31,7 +31,7 @@ Scrapp begins with City of San Diego rules and must not market worldwide coverag
 - Confirmed decisions cite an active rule version and official or verified source.
 - Unknown coverage stays unknown and never defaults to San Diego.
 - Classifier fallbacks, empty output, and outages are not successful decisions.
-- Verified facility acceptance outranks generic discovery; generic results say Call to confirm.
+- Verified facility acceptance outranks generic discovery; generic results say "Call to confirm."
 - Community corrections enter review and never publish automatically.
 - Scrapp is not an official City of San Diego service.
 
@@ -58,8 +58,8 @@ Internal rule, feedback, and evaluation tools remain configuration-gated until a
 - No production UI may fabricate a successful result.
 - San Diego data must not be encoded as branches in the core rule interfaces.
 
-## Civic Optics
+## Route Label
 
-Civic Optics combines camera precision with San Diego civic wayfinding. Cool off-white and charcoal canvases carry the product; teal is reserved for actions; blue, green, and gray communicate disposal only. Sora leads concise display moments, Geist carries controls and guidance, and the camera remains intentionally dark.
+Route Label is Scrapp's original visual language: photographed material specimens move through optical inspection frames and continuous route lines into large physical answer labels. Chalk off-white and charcoal canvases carry the product; teal is reserved for actions and route continuity; blue, green, and gray communicate disposal only. Sora leads concise display moments, Geist carries controls and guidance, and the camera remains intentionally dark.
 
 Primary mobile controls target 44px, product motion uses 120/200/320ms with reduced-motion fallbacks, system theme is respected, and WCAG 2.2 AA is the acceptance standard.

@@ -23,18 +23,43 @@ import { ScanHistorySheet } from "@/components/ScanHistorySheet";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { trackProductEvent } from "@/lib/analytics";
-import { decideCandidate, predict } from "@/lib/backend";
 import { getOrCreateDeviceId } from "@/lib/device-id";
-import {
-  getDominantBin,
-  getDominantItemName,
-  getDominantRoute,
-  getDominantSearchQueries
-} from "@/lib/locationCategories";
-import type { IdentificationCandidate } from "@/lib/rules/types";
-import { BaseStates } from "@/lib/states";
+import type { DisposalDecision, IdentificationCandidate } from "@/lib/rules/types";
 import type { ScanTicket, ScanTicketPayload } from "@/lib/types";
-import { dataURLtoFile, summarizePrediction } from "@/lib/utils";
+import { dataURLtoFile } from "@/lib/utils";
+
+type IdentifyResponse = {
+  candidates: IdentificationCandidate[];
+  uncertainty: string;
+  requiresChoice: boolean;
+};
+
+type ApiError = {
+  error?: {
+    code?: string;
+    message?: string;
+  };
+};
+
+class ScanRequestError extends Error {
+  constructor(
+    message: string,
+    public readonly code = "request_failed"
+  ) {
+    super(message);
+  }
+}
+
+async function readApiResponse<T>(response: Response): Promise<T> {
+  const body = (await response.json()) as T & ApiError;
+  if (!response.ok) {
+    throw new ScanRequestError(
+      body.error?.message || "The request could not be completed.",
+      body.error?.code
+    );
+  }
+  return body;
+}
 
 type CameraErrorCode =
   | "denied"
@@ -162,13 +187,6 @@ export function ScanView({
     }
   };
 
-  const appendLocalContext = (formData: FormData) => {
-    const context = getLocalContext();
-    formData.append("clientId", getOrCreateDeviceId());
-    formData.append("jurisdictionId", context.jurisdictionId);
-    formData.append("serviceProfileId", context.serviceProfileId);
-  };
-
   const requestCamera = async () => {
     if (!window.isSecureContext) {
       setUiState(cameraFailure(new Error("insecure")));
@@ -261,6 +279,93 @@ export function ScanView({
     onScanAgain();
   };
 
+  const identify = async (formData: FormData) => {
+    const response = await fetch("/api/v2/identify", {
+      method: "POST",
+      headers: { "X-Scrapp-Client-Id": getOrCreateDeviceId() },
+      body: formData,
+      signal: AbortSignal.timeout(20_000)
+    });
+    return readApiResponse<IdentifyResponse>(response);
+  };
+
+  const completeCandidate = async (
+    candidate: IdentificationCandidate,
+    source: {
+      image: string | null;
+      note?: string;
+      inputMode: "photo" | "describe";
+    }
+  ) => {
+    const context = getLocalContext();
+    const response = await fetch("/api/v2/decide", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        candidate,
+        jurisdictionId: context.jurisdictionId,
+        serviceProfileId: context.serviceProfileId
+      }),
+      signal: AbortSignal.timeout(10_000)
+    });
+    const result = await readApiResponse<{
+      decision: DisposalDecision | null;
+      message?: string;
+    }>(response);
+    if (!result.decision) {
+      throw new ScanRequestError(
+        result.message ||
+          "Choose your collection service in Settings, or check the official material guide.",
+        "rule_unavailable"
+      );
+    }
+
+    const decision = result.decision;
+    onScanComplete({
+      image: source.image,
+      note: source.note,
+      guidance: [decision.instruction, ...decision.preparation].join("\n"),
+      disposalRoute: decision.route,
+      bin: decision.bin,
+      itemName: candidate.name,
+      searchQueries: decision.searchQueries,
+      inputMode: source.inputMode,
+      decision
+    });
+    setNote("");
+    if (source.inputMode === "describe") setDescription("");
+    setUiState({ kind: source.inputMode === "photo" ? "ready" : "permission" });
+    trackProductEvent("analysis_succeeded", { input_mode: source.inputMode });
+  };
+
+  const showRequestError = (
+    error: unknown,
+    source: { image?: string; inputMode: "photo" | "describe" }
+  ) => {
+    trackProductEvent("analysis_failed", { input_mode: source.inputMode });
+    const requestError = error instanceof ScanRequestError ? error : null;
+    const timedOut = error instanceof DOMException && error.name === "TimeoutError";
+    const notConfigured = requestError?.code === "classifier_unavailable";
+    setUiState({
+      kind: "error",
+      code: timedOut ? "timeout" : "request",
+      title: timedOut
+        ? "Analysis took too long"
+        : notConfigured
+          ? "Photo identification is not configured"
+          : source.inputMode === "describe"
+            ? "We need a little more detail"
+            : "We could not identify this item",
+      message: timedOut
+        ? "The 20-second wait ended. Try again without losing the item."
+        : requestError?.message ||
+          (source.inputMode === "describe"
+            ? "Try a more specific item or material, such as plastic film, battery, or food-soiled paper."
+            : "Check your connection and try this photo again in clearer light."),
+      image: source.image
+    });
+  };
+
   const handleScan = async () => {
     if (uiState.kind !== "review") return;
     const image = uiState.image;
@@ -278,63 +383,36 @@ export function ScanView({
     }
 
     const formData = new FormData();
-    if (trimmedNote) formData.append("text", trimmedNote);
-    formData.append("file", file);
-    appendLocalContext(formData);
+    formData.append("image", file);
+    if (trimmedNote) formData.append("context", trimmedNote);
     trackProductEvent("analysis_started", { input_mode: "photo" });
     setUiState({ kind: "analyzing", image });
 
     try {
-      const timeout = new Promise<never>((_, reject) =>
-        window.setTimeout(() => reject(new Error("timeout")), 20_000)
-      );
-      const [state, result] = await Promise.race([predict(formData), timeout]);
-      if (state === BaseStates.ERROR || !result) {
-        setUiState({
-          kind: "error",
-          code: "request",
-          title: "We could not classify this item",
-          message: "Check your connection and try this photo again, or retake it in clearer light.",
-          image
-        });
-        return;
+      const result = await identify(formData);
+      if (!result.candidates.length) {
+        throw new ScanRequestError(
+          result.uncertainty || "No clear disposal item was found.",
+          "empty_identification"
+        );
       }
-      if (result.requiresChoice && result.identificationCandidates?.length) {
+      if (result.requiresChoice || result.candidates.length > 1) {
         setUiState({
           kind: "choice",
           image,
           note: trimmedNote || undefined,
           inputMode: "photo",
-          candidates: result.identificationCandidates
+          candidates: result.candidates
         });
         return;
       }
-      onScanComplete({
+      await completeCandidate(result.candidates[0], {
         image,
         note: trimmedNote || undefined,
-        guidance: summarizePrediction(result),
-        disposalRoute: getDominantRoute(result),
-        bin: getDominantBin(result) || undefined,
-        itemName: getDominantItemName(result),
-        searchQueries: result.decision?.searchQueries ?? getDominantSearchQueries(result),
-        inputMode: "photo",
-        decision: result.decision
+        inputMode: "photo"
       });
-      trackProductEvent("analysis_succeeded", { input_mode: "photo" });
-      setNote("");
-      setUiState({ kind: "ready" });
     } catch (error) {
-      trackProductEvent("analysis_failed", { input_mode: "photo" });
-      const timedOut = error instanceof Error && error.message === "timeout";
-      setUiState({
-        kind: "error",
-        code: timedOut ? "timeout" : "request",
-        title: timedOut ? "Analysis took too long" : "The request did not finish",
-        message: timedOut
-          ? "The 20-second wait ended. Try this photo again or retake it."
-          : "Check your connection and retry without losing the photo.",
-        image
-      });
+      showRequestError(error, { image, inputMode: "photo" });
     }
   };
 
@@ -344,44 +422,33 @@ export function ScanView({
     setUiState({ kind: "analyzing", image: "" });
     const formData = new FormData();
     formData.append("text", text);
-    appendLocalContext(formData);
     trackProductEvent("analysis_started", { input_mode: "describe" });
+
     try {
-      const [state, result] = await predict(formData);
-      if (state === BaseStates.ERROR || !result) throw new Error("unavailable");
-      if (result.requiresChoice && result.identificationCandidates?.length) {
+      const result = await identify(formData);
+      if (!result.candidates.length) {
+        throw new ScanRequestError(
+          result.uncertainty || "No verified material matched that description.",
+          "empty_identification"
+        );
+      }
+      if (result.requiresChoice || result.candidates.length > 1) {
         setUiState({
           kind: "choice",
           image: null,
           note: text,
           inputMode: "describe",
-          candidates: result.identificationCandidates
+          candidates: result.candidates
         });
         return;
       }
-      onScanComplete({
+      await completeCandidate(result.candidates[0], {
         image: null,
         note: text,
-        guidance: summarizePrediction(result),
-        disposalRoute: getDominantRoute(result),
-        bin: result.decision?.bin ?? getDominantBin(result) ?? undefined,
-        itemName: result.decision?.itemName ?? getDominantItemName(result),
-        searchQueries: result.decision?.searchQueries ?? getDominantSearchQueries(result),
-        inputMode: "describe",
-        decision: result.decision
+        inputMode: "describe"
       });
-      setDescription("");
-      setUiState({ kind: "permission" });
-      trackProductEvent("analysis_succeeded", { input_mode: "describe" });
-    } catch {
-      trackProductEvent("analysis_failed", { input_mode: "describe" });
-      setUiState({
-        kind: "error",
-        code: "request",
-        title: "We need a little more detail",
-        message:
-          "Try a more specific item or material, such as plastic film, battery, or food-soiled paper."
-      });
+    } catch (error) {
+      showRequestError(error, { inputMode: "describe" });
     }
   };
 
@@ -389,35 +456,14 @@ export function ScanView({
     if (uiState.kind !== "choice") return;
     const choice = uiState;
     setUiState({ kind: "analyzing", image: choice.image || "" });
-    const context = getLocalContext();
-    const decision = await decideCandidate(
-      candidate,
-      context.jurisdictionId,
-      context.serviceProfileId
-    );
-    if (!decision) {
-      setUiState({
-        kind: "error",
-        code: "request",
-        title: "Local rule not confirmed",
-        message:
-          "Choose your collection service in Settings, or check the material guide and official source."
+    try {
+      await completeCandidate(candidate, choice);
+    } catch (error) {
+      showRequestError(error, {
+        image: choice.image || undefined,
+        inputMode: choice.inputMode
       });
-      return;
     }
-    onScanComplete({
-      image: choice.image,
-      note: choice.note,
-      guidance: [decision.instruction, ...decision.preparation].join("\n"),
-      disposalRoute: decision.route,
-      bin: decision.bin,
-      itemName: candidate.name,
-      searchQueries: decision.searchQueries,
-      inputMode: choice.inputMode,
-      decision
-    });
-    setUiState({ kind: choice.inputMode === "photo" ? "ready" : "permission" });
-    trackProductEvent("analysis_succeeded", { input_mode: choice.inputMode });
   };
 
   const renderChoice = (state: Extract<ScanUiState, { kind: "choice" }>) => (
@@ -426,7 +472,7 @@ export function ScanView({
         <p className="text-xs font-bold uppercase tracking-[0.17em] text-teal-200">
           Confirm the item
         </p>
-        <h1 className="font-display mt-3 text-3xl font-semibold tracking-[-0.04em]">
+        <h1 className="font-display mt-7 text-3xl font-semibold tracking-[-0.04em]">
           Which item did you mean?
         </h1>
         <p className="mt-3 text-sm leading-6 text-white/60">
@@ -466,12 +512,12 @@ export function ScanView({
   );
 
   const renderDescribe = () => (
-    <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_50%_18%,#244640_0,transparent_34%),#0a0f0e] px-5 text-white">
+    <div className="absolute inset-0 flex items-center justify-center bg-[#0b0f0e] px-5 text-white">
       <div className="w-full max-w-lg">
         <p className="text-xs font-bold uppercase tracking-[0.17em] text-teal-200">
           Describe an item
         </p>
-        <h1 className="font-display mt-3 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
+        <h1 className="font-display mt-7 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
           What are you trying to sort?
         </h1>
         <p className="mt-4 max-w-md text-sm leading-6 text-white/60">
@@ -498,15 +544,12 @@ export function ScanView({
   );
 
   const renderPermission = () => (
-    <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_50%_22%,#244640_0,transparent_36%),#0a0f0e] px-5 text-white">
+    <div className="absolute inset-0 flex items-center justify-center bg-[#0b0f0e] px-5 text-white">
       <div className="w-full max-w-md text-center">
-        <div className="mx-auto flex size-16 items-center justify-center rounded-[18px] border border-white/10 bg-white/[0.06]">
+        <div className="route-permission-mark mx-auto flex size-16 items-center justify-center border border-white/15 bg-white/[0.06]">
           <CameraIcon className="size-7 text-teal-200" />
         </div>
-        <p className="mt-7 text-xs font-bold uppercase tracking-[0.17em] text-teal-200">
-          Start a scan
-        </p>
-        <h1 className="font-display mt-3 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
+        <h1 className="font-display mt-7 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
           Show Scrapp what you are sorting.
         </h1>
         <p className="mx-auto mt-4 max-w-sm text-sm leading-6 text-white/60">
@@ -538,7 +581,7 @@ export function ScanView({
           className="absolute inset-0 h-full w-full object-cover opacity-25"
         />
       )}
-      <div className="relative w-full max-w-md rounded-[20px] border border-white/10 bg-black/65 p-6 text-center backdrop-blur-xl">
+      <div className="relative w-full max-w-md border border-white/15 bg-[#111715]/95 p-6 text-center [clip-path:polygon(0_0,92%_0,100%_12%,100%_100%,0_100%)]">
         <AlertCircle className="mx-auto size-7 text-amber-300" />
         <h2 className="font-display mt-4 text-2xl font-semibold">{state.title}</h2>
         <p className="mt-3 text-sm leading-6 text-white/65">{state.message}</p>
@@ -585,7 +628,7 @@ export function ScanView({
               ticket={activeTicket}
               hideImage
               onScanAgain={handleScanAgain}
-              className="flex-none rounded-b-none rounded-t-[22px] border-x-0 border-b-0 bg-card/96 shadow-2xl backdrop-blur-xl"
+              className="flex-none border-x-0 border-b-0 bg-card/98"
             />
           </div>
         </>
@@ -766,14 +809,14 @@ export function ScanView({
           </div>
         )}
         {!activeTicket && uiState.kind !== "analyzing" && uiState.kind !== "choice" && (
-          <div className="absolute left-1/2 top-[max(0.75rem,env(safe-area-inset-top))] z-20 flex -translate-x-1/2 rounded-xl border border-white/12 bg-black/55 p-1 text-white backdrop-blur-xl">
+          <div className="route-camera-modes absolute left-1/2 top-[max(0.75rem,env(safe-area-inset-top))] z-20 flex -translate-x-1/2 border-b border-white/25 bg-black/55 text-white backdrop-blur-md">
             <button
               type="button"
               onClick={() => {
                 setInputMode("photo");
                 setUiState({ kind: "permission" });
               }}
-              className={`min-h-10 rounded-lg px-4 text-sm font-semibold ${inputMode === "photo" ? "bg-white text-black" : "text-white/70"}`}>
+              className={`min-h-10 px-4 text-sm font-semibold ${inputMode === "photo" ? "border-b-2 border-white text-white" : "text-white/60"}`}>
               <CameraIcon className="mr-2 inline size-4" /> Photo
             </button>
             <button
@@ -782,18 +825,18 @@ export function ScanView({
                 setInputMode("describe");
                 setUiState({ kind: "permission" });
               }}
-              className={`min-h-10 rounded-lg px-4 text-sm font-semibold ${inputMode === "describe" ? "bg-white text-black" : "text-white/70"}`}>
+              className={`min-h-10 px-4 text-sm font-semibold ${inputMode === "describe" ? "border-b-2 border-white text-white" : "text-white/60"}`}>
               <MessageSquareText className="mr-2 inline size-4" /> Describe
             </button>
           </div>
         )}
         {isMobile && (
-          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent px-4 pb-10 pt-[max(0.75rem,env(safe-area-inset-top))]">
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
             <Button
               asChild
               variant="secondary"
               size="icon"
-              className="pointer-events-auto rounded-full border border-white/15 bg-black/40 text-white backdrop-blur hover:bg-black/60">
+              className="pointer-events-auto rounded-[10px] border border-white/15 bg-black/55 text-white backdrop-blur hover:bg-black/70">
               <Link href="/" aria-label="Home">
                 <Home className="size-5" />
               </Link>
