@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Camera, Home, MapPin } from "lucide-react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { Suspense, useLayoutEffect, useRef, useState } from "react";
+import { buildScanHref, buildScanLocationsHref, readScanHandoff, SCAN_HISTORY_EVENT } from "@/lib/scanHistory";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -14,7 +15,7 @@ const LINKS = [
 
 type IndicatorRect = { left: number; top: number; width: number; height: number };
 
-export function PillNav() {
+function Navigation({ scanHref = "/cam", locationsHref = "/locations" }: { scanHref?: string; locationsHref?: string }) {
   const pathname = usePathname();
   const navRef = useRef<HTMLElement>(null);
   const linkRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
@@ -72,11 +73,12 @@ export function PillNav() {
         return (
           <Link
             key={href}
-            href={href}
+            href={href === "/locations" ? locationsHref : href === "/cam" ? scanHref : href}
             ref={(el) => {
               if (el) linkRefs.current.set(href, el);
               else linkRefs.current.delete(href);
             }}
+            aria-label={label}
             aria-current={isActive ? "page" : undefined}
             className={cn(
               "relative z-10 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors duration-300",
@@ -93,4 +95,36 @@ export function PillNav() {
       })}
     </nav>
   );
+}
+
+function ConnectedNavigation() {
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const scanId = params.get("scan");
+  const pick = params.get("pick");
+  const [locationsHref, setLocationsHref] = useState("/locations");
+  const [scanHref, setScanHref] = useState("/cam");
+
+  useLayoutEffect(() => {
+    const sync = () => {
+      const handoff = readScanHandoff(scanId, pick);
+      setLocationsHref(pathname === "/cam" && handoff
+        ? buildScanLocationsHref(handoff.ticket, handoff.itemIndex) : "/locations");
+      setScanHref(pathname === "/locations" && handoff
+        ? buildScanHref(handoff.ticket.id, handoff.itemIndex) : "/cam");
+    };
+    sync();
+    window.addEventListener(SCAN_HISTORY_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(SCAN_HISTORY_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, [pathname, scanId, pick]);
+
+  return <Navigation scanHref={scanHref} locationsHref={locationsHref} />;
+}
+
+export function PillNav() {
+  return <Suspense fallback={<Navigation />}><ConnectedNavigation /></Suspense>;
 }

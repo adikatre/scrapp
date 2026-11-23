@@ -1,13 +1,13 @@
 # Scrapp: Smart Waste Disposal Helper
 
-Photograph an item, get clear disposal guidance, and find nearby drop-off locations. Scrapp is a mobile-first PWA built to reduce recycling confusion and keep hazardous waste out of the wrong bins.
+Photograph or describe a household item to get disposal guidance for the City of San Diego. [Try the demo and see the verified results](demo/clean.md). Scrapp is a mobile-first PWA built to reduce recycling confusion and keep hazardous waste out of the wrong bins.
 
 ## How to Use
 
-1. **Home** (`/`), Learn how Scrapp works and why proper disposal matters.
-2. **Scan** (`/cam`), Take a photo with your camera or upload an image. Add an optional note for extra context.
-3. **Result**, See the item name, material, disposal route, confidence, and guidance.
-4. **Locations** (`/locations`), Find nearby recycling, compost, e-waste, and other drop-off centers on an interactive map. Scan results deep-link here with item-specific search queries.
+1. **Home** (`/`). Scan an item or open a local guide for a common material.
+2. **Scan** (`/cam`). Take or upload a photo, type an item description, or use both. Known household items also offer a local lookup without an API call.
+3. **Result**. Select an item and answer any condition question. Open **Scan details** for the model's observations, estimated confidence and your original description.
+4. **Disposal options** (`/locations`). The selected item and condition travel with you. See the local bin, program, appointment or places to contact. The original scan stays in this browser's history.
 
 ### Install as an App (PWA)
 
@@ -15,12 +15,11 @@ On mobile, open Scrapp in your browser and choose **Add to Home Screen** (Safari
 
 ## Features
 
-- Camera scan and image upload with optional text note
-- GPT-4o-mini vision classification with 9 disposal routes, confidence scores, and caveats
-- Interactive locations map with category filters and LLM-generated search queries from scan results
-- Curated local data, San Diego County free battery collection at library branches, plus ~690 Battery Network retail drop-off sites across Southern California, routed by battery type
-- Mobile-first responsive UI with separate mobile and desktop scan experiences
-- Installable PWA ([manifest.ts](src/app/manifest.ts))
+- Photo and text identification via the backend’s Adaption vision model, with support for existing OpenAI deployments.
+- Local guidance linked to City, County and collection-program sources. Fabric condition, gas cylinder labels and battery type change what the app recommends.
+- Item-by-item history and return navigation. A fresh photo preview stays in memory. Saved scans contain text and condition answers.
+- A Google-independent local guide and curated battery sites, with optional live place search, contact details and map tiles.
+- Mobile-first layout and installable PWA.
 
 ## Congressional App Challenge
 
@@ -31,23 +30,24 @@ Scrapp placed **4th nationally** in the Congressional App Challenge 2025. We bui
 ### Prerequisites
 
 - Node.js 20+
-- A running [Scrapp backend](https://github.com/adikatre/scrapp-backend) with a valid `OPENAI_API_KEY` (predictions won't work without it)
-- Google Cloud project with **Maps JavaScript API** and **Places API (New)** enabled (for the locations page)
+- For model analysis, run the [Scrapp backend](https://github.com/adikatre/scrapp-backend) with an `ADAPTION_API_KEY` or `OPENAI_API_KEY`. Keep provider credentials on the backend.
+- Google Cloud project with **Maps JavaScript API** and **Places API (New)** enabled (optional, for live places and interactive maps)
 
 ### Install and Run
 
 ```bash
-cp .env.example .env.local
-npm install
+cp -n .env.example .env.local
+npm ci
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Start the backend on port 5000 before scanning.
+Open [http://localhost:3000](http://localhost:3000). The household guide and curated programs work with the frontend alone. For scans, start the backend on port 5000 and set the same `BACKEND_API_KEY` on both servers.
 
 ### Scripts
 
 | Command | What it does |
 |---|---|
+| `npm test` | Local guidance, program matching and scan history tests |
 | `npm run dev` | Next.js dev server with Turbopack on :3000 |
 | `npm run build` | Production build |
 | `npm start` | Serve the production build (run `build` first) |
@@ -59,7 +59,7 @@ Open [http://localhost:3000](http://localhost:3000). Start the backend on port 5
 | Variable | Purpose |
 |---|---|
 | `NEXT_PRIVATE_BACKEND_URL` | Flask backend URL (e.g. `http://localhost:5000`) |
-| `BACKEND_API_KEY` | Shared secret sent to the backend as `Authorization: Bearer <key>`. Must match `BACKEND_API_KEY` on the backend exactly, or every scan comes back `401`. [backend.ts](src/lib/backend.ts) throws at startup if it's unset |
+| `BACKEND_API_KEY` | Shared secret sent to the backend as `Authorization: Bearer <key>`. Must match `BACKEND_API_KEY` on the backend exactly, or every scan comes back `401`. The scanner shows an unavailable message when configuration is missing |
 | `GOOGLE_PLACES_API_KEY` | Server-side Places search (keep secret) |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Client-side map tiles (restrict by domain in production) |
 
@@ -79,7 +79,7 @@ Only `NEXT_PUBLIC_`-prefixed variables reach the browser; the rest stay server-s
 
 ### Curated Drop-Off Data
 
-The locations page merges two sources: live Google Places results, and curated drop-off programs in
+For an item needing a facility, the locations page merges live Google Places candidates and curated drop-off programs in
 [src/lib/curated/](src/lib/curated/). Each program owns its data plus a `matches()` rule deciding when
 that data is relevant, so adding one means a new module and a line in the registry
 ([index.ts](src/lib/curated/index.ts)), nothing in the search pipeline changes. Curated sites render as
@@ -139,7 +139,8 @@ Two known quirks of the upstream data, both handled by the generator:
 ### Architecture
 
 ```
-User → Next.js PWA → server action → Flask /predict → GPT-4o-mini
+User → Next.js PWA → server action → Flask /predict → Adaption or OpenAI
+                   → city/county guide → condition-specific bin, appointment or drop-off
                    → Google Places API (locations search)
                    → Google Maps JS API (map tiles)
 ```
@@ -154,7 +155,7 @@ For a full launch checklist, budget, metrics, distribution, and ops, see [LAUNCH
 
 **Frontend (this repo):** Next.js 15, React 19, TypeScript, Tailwind CSS 4, Radix UI, Google Maps
 
-**Backend:** [scrapp-backend](https://github.com/adikatre/scrapp-backend), Flask, GPT-4o-mini vision
+**Backend:** [scrapp-backend](https://github.com/adikatre/scrapp-backend), Flask, Adaption and OpenAI vision
 
 ## Made By
 

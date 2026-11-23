@@ -19,6 +19,10 @@ export type DropoffKind = "vehicle" | "ebike" | "cellphone" | "household";
 
 const BATTERY = /batter(y|ies)/i;
 
+export function hasBatteryDamage(text: string): boolean {
+  return /\b(swollen|swelling|bulging|bloated|damaged|cracked|punctured|leak(?:ing|y)?|leaked|corroded|corrosion|smoking|smoke|overheating|hot|recalled|reacting|defective)\b/i.test(text);
+}
+
 /**
  * A lead-acid host, matched by co-occurrence with "battery" rather than by
  * adjacency: the classifier does not reliably put the words together, so
@@ -49,8 +53,7 @@ const POWER_BANK = /\bpower\s?bank\b|\bportable charger\b/i;
  * "e bike" sitting inside "th_e bike_" and "exercis_e bike_", which routed an
  * exercise bike to a hazmat drop-off.
  */
-const EBIKE =
-  /\be[\s-]?(bike|scooter|mobility)\b|\belectric\s+(bike|bicycle|scooter|skateboard)\b|\bscooter\s+batter|\bhoverboard\b/i;
+const EBIKE = /\be[\s-]?bikes?\b|\belectric\s+(?:bike|bicycle)s?\b/i;
 
 /**
  * A handset, which the network collects whole rather than as a loose battery —
@@ -114,6 +117,12 @@ export function resolveDropoffKind(
   input: Pick<CuratedMatchInput, "item" | "queries">
 ): DropoffKind | null {
   if (input.item) {
+    // These need a specialist. A fallback query about battery recycling must
+    // never re-enable ordinary collection boxes for a damaged pack or EV pack.
+    if (
+      hasBatteryDamage(input.item) ||
+      /\b(?:hybrid|traction|electric (?:car|vehicle|scooter|skateboard)|e[- ]?scooter|scooter|hoverboard|EV|battery[- ]powered)\b/i.test(input.item)
+    ) return null;
     const fromItem = classifyText(input.item);
     if (fromItem) return fromItem;
   }

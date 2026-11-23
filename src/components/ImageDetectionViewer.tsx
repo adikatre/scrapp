@@ -1,176 +1,33 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { cn, dataURLtoFile } from "@/lib/utils";
-import { predict } from "@/lib/backend";
-import { BaseStates } from "@/lib/states";
-import { Loader2 } from "lucide-react";
-import { PredictionResult } from "@/lib/types";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import type { PredictionResult } from "@/lib/types";
 
-function useImageNaturalSize(src?: string | null) {
-  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
-  useEffect(() => {
-    if (!src) return;
-    const img = new Image();
-    img.onload = () => setSize({ w: img.naturalWidth, h: img.naturalHeight });
-    img.src = src;
-  }, [src]);
-  return size;
-}
-
-export function ImageDetectionViewer({
-  open,
-  onOpenChange,
-  imageSrc,
-  initialPrediction
-}: {
+type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  imageSrc: string | null;
-  initialPrediction?: PredictionResult | null;
-}) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [prediction, setPrediction] = useState<PredictionResult | null>(
-    initialPrediction ?? null
-  );
+  imageSrc: string;
+  prediction: PredictionResult;
+};
 
-  const natural = useImageNaturalSize(imageSrc);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [container, setContainer] = useState<{ w: number; h: number }>({
-    w: 0,
-    h: 0
-  });
-
-  useEffect(() => {
-    if (!open) return;
-    if (!imageSrc) return;
-
-    // If we already have a prediction, do nothing
-    if (prediction) return;
-
-    const run = async () => {
-      setLoading(true);
-      setError(null);
-      const file = dataURLtoFile(imageSrc, `capture-${Date.now()}.png`);
-      if (!file) {
-        setError("Invalid image data");
-        setLoading(false);
-        return;
-      }
-      const fd = new FormData();
-      fd.append("file", file);
-      const [state, res] = await predict(fd);
-      if (state === BaseStates.ERROR || !res) {
-        setError("Prediction failed");
-        setLoading(false);
-        return;
-      }
-      const p = res as unknown as PredictionResult;
-      setPrediction(p);
-      setLoading(false);
-    };
-
-    run();
-  }, [open, imageSrc, prediction]);
-
-  useEffect(() => {
-    if (!open) return;
-    const el = containerRef.current;
-    if (!el) return;
-
-    const onResize = () =>
-      setContainer({ w: el.clientWidth, h: el.clientHeight });
-    onResize();
-    const ro = new ResizeObserver(onResize);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [open]);
-
-  const scale = useMemo(() => {
-    if (!natural || !container.w || !container.h) return { x: 1, y: 1 };
-    // Image will be contained; compute aspect-fit scale
-    const imgAspect = natural.w / natural.h;
-    const boxAspect = container.w / container.h;
-    if (imgAspect > boxAspect) {
-      // Width fills
-      const displayedW = container.w;
-      const displayedH = displayedW / imgAspect;
-      return { x: displayedW / natural.w, y: displayedH / natural.h };
-    } else {
-      // Height fills
-      const displayedH = container.h;
-      const displayedW = displayedH * imgAspect;
-      return { x: displayedW / natural.w, y: displayedH / natural.h };
-    }
-  }, [natural, container]);
-
+export function ImageDetectionViewer({ open, onOpenChange, imageSrc, prediction }: Props) {
+  const [size, setSize] = useState({ width: 0, height: 0 });
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>Detections</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3">
-          {prediction?.bin_totals && (
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(prediction.bin_totals).map(([route, count]) => (
-                <Badge key={route} variant="outline" className="text-xs">
-                  {route}: {count}
-                </Badge>
-              ))}
-            </div>
-          )}
-          <div
-            ref={containerRef}
-            className="relative w-full aspect-video rounded-lg overflow-hidden border bg-muted">
-            {imageSrc && (
-              <img
-                src={imageSrc}
-                alt="uploaded"
-                className="absolute inset-0 w-full h-full object-contain"
-              />
-            )}
-            {/* overlays */}
-            {prediction?.detections?.map((d, i) => {
-              const [x1, y1, x2, y2] = d.bbox;
-              const left = x1 * scale.x;
-              const top = y1 * scale.y;
-              const width = (x2 - x1) * scale.x;
-              const height = (y2 - y1) * scale.y;
-              return (
-                <div
-                  key={i}
-                  className={cn(
-                    "absolute border-2 rounded-md",
-                    "border-emerald-400/90"
-                  )}
-                  style={{ left, top, width, height }}>
-                  <div className="absolute -top-6 left-0 bg-emerald-500 text-white text-[10px] px-1.5 py-0.5 rounded">
-                    {d.class_name} • {(d.confidence * 100).toFixed(0)}% •{" "}
-                    {d.route}
-                  </div>
-                </div>
-              );
-            })}
-            {loading && (
-              <div className="absolute inset-0 grid place-items-center bg-background/60">
-                <Loader2 className="size-6 animate-spin" />
-              </div>
-            )}
-            {error && !loading && (
-              <div className="absolute inset-0 grid place-items-center text-sm text-destructive">
-                {error}
-              </div>
-            )}
-          </div>
+        <DialogHeader><DialogTitle>Scanned photo</DialogTitle></DialogHeader>
+        <div className="relative mx-auto max-w-full">
+          <img src={imageSrc} alt="Photo used for this scan" className="max-h-[65vh] max-w-full"
+            onLoad={(event) => setSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })} />
+          {size.width > 0 && prediction.detections.map((d, i) => {
+            const [x1, y1, x2, y2] = d.bbox;
+            return <div key={i} className="pointer-events-none absolute border-2 border-emerald-400 text-[10px] text-white"
+              style={{ left: `${100*x1/size.width}%`, top: `${100*y1/size.height}%`,
+                width: `${100*(x2-x1)/size.width}%`, height: `${100*(y2-y1)/size.height}%` }}>
+              <span className="bg-emerald-900/90 px-1">{d.class_name}</span>
+            </div>;
+          })}
         </div>
       </DialogContent>
     </Dialog>

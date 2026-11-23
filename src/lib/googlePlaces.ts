@@ -12,9 +12,6 @@ import { Place, PlaceDetails } from "./types";
 
 const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY ?? "";
 
-/** Below this many item-specific hits, backfill with the generic category search */
-const MIN_ITEM_RESULTS = 5;
-
 type GooglePlaceResult = {
   id?: string;
   displayName?: { text?: string };
@@ -75,7 +72,7 @@ export async function searchPlaces(input: {
       places: curated,
       error: curated.length
         ? undefined
-        : "Google Places API key is not configured. Add GOOGLE_PLACES_API_KEY to .env.local"
+        : "Live place listings are unavailable."
     };
   }
 
@@ -94,17 +91,13 @@ export async function searchPlaces(input: {
   );
 
   const itemQueries = sanitizeSearchQueries(input.queries)
-    .map((q) => (hasCoords ? q : `${q} near ${input.locationLabel}`))
-    .filter((q) => q !== baseQuery);
-
-  const [itemResults, baseResult] = await Promise.all([
-    Promise.all(
-      itemQueries.map((textQuery) =>
-        runTextSearch(textQuery, input.lat, input.lng)
-      )
-    ),
-    runTextSearch(baseQuery, input.lat, input.lng)
-  ]);
+    .map((q) => (hasCoords ? q : `${q} near ${input.locationLabel}`));
+  // A category-wide backfill could send a cylinder or damaged textile to a
+  // facility that only handles other kinds of household waste.
+  const searches = itemQueries.length ? itemQueries : [baseQuery];
+  const results = await Promise.all(searches.map(query =>
+    runTextSearch(query, input.lat, input.lng)
+  ));
 
   const seen = new Set<string>();
   const merged: Place[] = [...curated];
@@ -118,34 +111,16 @@ export async function searchPlaces(input: {
   const isCuratedDuplicate = (place: Place) =>
     curated.some((c) => isSamePlace(c, place));
 
-  // Item-specific (LLM-grounded) results come first: they target the exact
-  // scanned item, so they beat the generic category query in relevance.
-  for (const result of itemResults) {
+  for (const result of results) {
     for (const place of result.places) {
-      if (seen.has(place.id)) continue;
-      if (isCuratedDuplicate(place)) continue;
+      if (seen.has(place.id) || isCuratedDuplicate(place)) continue;
+      if (!itemQueries.length && category.excludeResultPattern?.test(place.name)) continue;
       seen.add(place.id);
       merged.push(place);
     }
   }
 
-  // Generic category results only backfill when item queries were sparse or
-  // absent; text search is fuzzy, so drop adjacent-but-wrong business types
-  // (e.g. scrap metal yards for "household hazardous waste").
-  const itemResultCount = merged.length - curated.length;
-  if (itemQueries.length === 0 || itemResultCount < MIN_ITEM_RESULTS) {
-    for (const place of baseResult.places) {
-      if (seen.has(place.id)) continue;
-      if (category.excludeResultPattern?.test(place.name)) continue;
-      if (isCuratedDuplicate(place)) continue;
-      seen.add(place.id);
-      merged.push(place);
-    }
-  }
-
-  // Only surface an error when every query failed and nothing else was found.
-  const firstError =
-    itemResults.find((r) => r.error)?.error ?? baseResult.error;
+  const firstError = results.find(result => result.error)?.error;
   if (merged.length === 0 && firstError) {
     return { places: [], error: firstError };
   }
@@ -187,33 +162,8 @@ async function runTextSearch(
     });
 
     if (!res.ok) {
-      const errText = await res.text();
-      console.warn("[googlePlaces] search failed:", res.status, errText);
-      try {
-        const errJson = JSON.parse(errText) as {
-          error?: { message?: string };
-        };
-        const googleMsg = errJson.error?.message;
-        if (googleMsg) {
-          if (
-            googleMsg.includes("Places API (New)") &&
-            googleMsg.toLowerCase().includes("disabled")
-          ) {
-            return {
-              places: [],
-              error:
-                "Places API (New) is not enabled for this key's Google Cloud project. Enable it in Google Cloud Console (APIs & Services → Library → Places API (New)), wait a few minutes, then refresh."
-            };
-          }
-          return { places: [], error: googleMsg };
-        }
-      } catch {
-        // fall through to generic message
-      }
-      return {
-        places: [],
-        error: `Places search failed (${res.status}). Check your API key and billing.`
-      };
+      console.warn("[googlePlaces] search failed:", res.status);
+      return { places: [], error: "Live place listings are unavailable." };
     }
 
     const data = (await res.json()) as { places?: GooglePlaceResult[] };
@@ -251,7 +201,7 @@ export async function autocompleteLocations(input: {
   lng?: number;
 }): Promise<{ predictions: LocationPrediction[]; error?: string }> {
   if (!PLACES_API_KEY) {
-    return { predictions: [], error: "Google Places API key is not configured." };
+    return { predictions: [], error: "Location lookup is unavailable." };
   }
 
   const query = input.query.trim().slice(0, 80);
@@ -291,10 +241,10 @@ export async function autocompleteLocations(input: {
     );
 
     if (!res.ok) {
-      console.warn("[googlePlaces] autocomplete failed:", res.status, await res.text());
+      console.warn("[googlePlaces] autocomplete failed:", res.status);
       return {
         predictions: [],
-        error: `Location suggestions failed (${res.status}).`
+        error: "Suggestions are unavailable. Press Enter to use this location."
       };
     }
 
@@ -385,7 +335,7 @@ export async function getPlaceDetails(
   if (!PLACES_API_KEY) {
     return {
       details: null,
-      error: "Google Places API key is not configured."
+      error: "Location lookup is unavailable."
     };
   }
 

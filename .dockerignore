@@ -4,3 +4,6 @@
 /.vscode
 /.github
 /src/app/testing
+.env
+.env.local
+.env.*.local
