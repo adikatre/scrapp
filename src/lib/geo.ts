@@ -34,7 +34,8 @@ export function readSavedLocationPrefs(): SavedLocationPrefs | null {
     const raw = localStorage.getItem(LOCATIONS_STORAGE_KEY);
     if (!raw) return null;
     const prefs = JSON.parse(raw) as SavedLocationPrefs;
-    if (!prefs.label) return null;
+    if (!prefs || typeof prefs.label !== "string" || !prefs.label.trim() ||
+      !Number.isFinite(prefs.lat) || !Number.isFinite(prefs.lng)) return null;
     return prefs;
   } catch {
     return null;
@@ -43,5 +44,9 @@ export function readSavedLocationPrefs(): SavedLocationPrefs | null {
 
 export function saveLocationPrefs(prefs: SavedLocationPrefs): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(LOCATIONS_STORAGE_KEY, JSON.stringify(prefs));
+  try {
+    localStorage.setItem(LOCATIONS_STORAGE_KEY, JSON.stringify(prefs));
+  } catch {
+    // The current search still works when browser storage is disabled.
+  }
 }

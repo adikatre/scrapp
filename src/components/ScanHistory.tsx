@@ -1,36 +1,24 @@
 "use client";
 
-import { DisposalTicket } from "@/components/DisposalTicket";
-import { ScanTicket } from "@/lib/types";
+import type { ScanTicket } from "@/lib/types";
 
-interface ScanHistoryProps {
-  tickets: ScanTicket[];
-  onSelect: (id: string) => void;
-  emptyMessage?: string;
-}
+type Props = { tickets: ScanTicket[]; onSelect: (id: string) => void };
 
-/** Plain list of past scans, used inside either a sidebar or a sheet. */
-export function ScanHistory({
-  tickets,
-  onSelect,
-  emptyMessage = "Your past scans from this current session will show up here."
-}: ScanHistoryProps) {
-  if (tickets.length === 0) {
-    return (
-      <p className="px-1 text-sm text-muted-foreground">{emptyMessage}</p>
-    );
-  }
-
+export function ScanHistory({ tickets, onSelect }: Props) {
+  if (!tickets.length) return <p className="text-sm text-muted-foreground">Your recent scans will appear here on this browser.</p>;
   return (
-    <div className="flex w-full flex-col gap-2">
+    <ul className="space-y-2">
       {tickets.map((ticket) => (
-        <button
-          key={ticket.id}
-          onClick={() => onSelect(ticket.id)}
-          className="w-full text-left">
-          <DisposalTicket ticket={ticket} compact />
-        </button>
+        <li key={ticket.id}>
+          <button type="button" onClick={() => onSelect(ticket.id)}
+            className="w-full rounded-lg border bg-muted/20 p-3 text-left text-sm hover:bg-muted">
+            <span className="block break-words font-medium">{ticket.items.map((item) => item.name).join(", ")}</span>
+            <time dateTime={ticket.timestamp.toISOString()} className="mt-1 block text-xs text-muted-foreground">
+              {ticket.timestamp.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+            </time>
+          </button>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }

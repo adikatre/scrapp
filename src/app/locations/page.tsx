@@ -1,796 +1,138 @@
 "use client";
 
-import React, {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { APIProvider } from "@vis.gl/react-google-maps";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, Camera, MapPin, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import { LocationsMap } from "@/components/LocationsMap";
-import {
-  LocationSearchInput,
-  type LocationSelection
-} from "@/components/LocationSearchInput";
-import { getPlaceDetails, searchPlaces } from "@/lib/googlePlaces";
-import {
-  getCategoryByKey,
-  getCurbsideBinInfo,
-  getItemSubcategories,
-  itemAffectsSearch,
-  LOCATION_CATEGORIES,
-  type LocationCategoryKey
-} from "@/lib/locationCategories";
-import {
-  formatDistance,
-  haversineDistance,
-  readSavedLocationPrefs,
-  saveLocationPrefs
-} from "@/lib/geo";
-import { Place, PlaceDetails } from "@/lib/types";
-import {
-  MapPin,
-  Compass,
-  Phone,
-  Globe,
-  Navigation,
-  ChevronDown,
-  ChevronUp,
-  AlertCircle,
-  Camera,
-  Clock
-} from "lucide-react";
+import { LocalDisposalGuide } from "@/components/LocalDisposalGuide";
+import { MaterialShortcuts } from "@/components/MaterialShortcuts";
+import { NearbyLocations } from "@/components/NearbyLocations";
+import { getSanDiegoGuidance } from "@/lib/sanDiegoDisposal";
+import { buildScanHref, buildScanLocationsHref, getScanSourceLabel, readScanHandoff, setScanChoice } from "@/lib/scanHistory";
+import { getCategoryByKey, getCurbsideBinInfo, getItemSubcategories, LOCATION_CATEGORIES, resolveCategoryKey, sanitizeSearchQueries } from "@/lib/locationCategories";
 
-function LocationsPageContent() {
+const directory = "https://wastefreesd.org/";
+
+function LocationsGuide({ query }: { query: string }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const initialCategory =
-    (searchParams.get("category") as LocationCategoryKey) || "recycle";
-  const scannedItem = searchParams.get("item");
-  const scannedQueries = useMemo(
-    () => searchParams.getAll("q"),
-    [searchParams]
-  );
-  // Curbside bin the scan landed in (blue/green/gray), if any. Surfaces the
-  // "toss it at the curb" note. Special Drop-off and non-bins yield undefined.
-  const curbsideBin = getCurbsideBinInfo(searchParams.get("bin"));
+  const params = new URLSearchParams(query);
+  const [handoff] = useState(() => readScanHandoff(params.get("scan"), params.get("pick")));
+  const [choice, setChoice] = useState<string | undefined>(() =>
+    handoff?.ticket.choices?.[handoff.itemIndex] ?? params.get("condition") ?? undefined);
+  const name = handoff?.item.name ?? params.get("item")?.trim().slice(0, 160);
+  const [lookup, setLookup] = useState("");
+  const item = handoff?.item ?? (name ? { name } : undefined);
+  const guide = item && getSanDiegoGuidance(item, choice);
+  const bin = guide?.bin ?? handoff?.item.bin ?? params.get("bin");
+  const route = guide?.route ?? handoff?.item.route;
+  const legacyCategory = getCategoryByKey(params.get("category"));
+  const category = route
+    ? getCategoryByKey(resolveCategoryKey(route, bin))
+    : legacyCategory ?? (!name ? getCategoryByKey("recycle") : undefined);
+  const queries = guide?.searchQueries ?? handoff?.item.search_queries ?? sanitizeSearchQueries(params.getAll("q"));
+  const curbside = getCurbsideBinInfo(bin);
+  const unresolved = !guide && route === "Landfill / Donate / Check rules";
+  const canSearch = category?.searchable && !curbside && !unresolved && (!guide || guide.searchQueries.length > 0);
 
-  const savedOnMount = useMemo(() => readSavedLocationPrefs(), []);
-
-  const [activeCategory, setActiveCategory] = useState<LocationCategoryKey>(
-    () =>
-      !searchParams.get("category") && savedOnMount?.category
-        ? (savedOnMount.category as LocationCategoryKey)
-        : initialCategory
-  );
-  const [locationLabel, setLocationLabel] = useState(
-    () => savedOnMount?.label ?? "San Diego, CA"
-  );
-  const [userCoords, setUserCoords] = useState<{
-    lat: number;
-    lng: number;
-  } | null>(() =>
-    savedOnMount?.lat && savedOnMount?.lng
-      ? { lat: savedOnMount.lat, lng: savedOnMount.lng }
-      : null
-  );
-  const [places, setPlaces] = useState<Place[]>([]);
-  const [listFilter, setListFilter] = useState("");
-  // Starts true so the first paint shows skeletons instead of flashing the
-  // "no places found" empty state while geolocation + the first search resolve.
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [geoError, setGeoError] = useState<string | null>(null);
-  const [locationReady, setLocationReady] = useState(false);
-  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
-  const [expandedDetails, setExpandedDetails] = useState<
-    Record<string, PlaceDetails>
-  >({});
-  const [loadingDetails, setLoadingDetails] = useState<Record<string, boolean>>(
-    {}
-  );
-  const [isLocating, setIsLocating] = useState(false);
-
-  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  // Monotonic id so a slow, superseded search can't overwrite the results or
-  // loading state of a newer one (e.g. rapid category switches).
-  const searchSeqRef = useRef(0);
-  const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
-
-  const category = getCategoryByKey(activeCategory);
-  const isSearchable = category?.searchable ?? true;
-  // Only show the curbside note while viewing the bin's own category; switching
-  // to another tab (e.g. a manual drop-off search) hides it.
-  const showCurbsideNote =
-    !!curbsideBin && activeCategory === curbsideBin.categoryKey;
-  const CurbsideIcon = category?.icon;
-
-  const runSearch = useCallback(
-    async (opts?: { lat?: number; lng?: number; label?: string }) => {
-      if (!isSearchable) {
-        searchSeqRef.current++;
-        setPlaces([]);
-        setError(null);
-        setIsLoading(false);
-        return;
-      }
-
-      const seq = ++searchSeqRef.current;
-      setIsLoading(true);
-      setError(null);
-      setSelectedPlaceId(null);
-
-      const label = opts?.label ?? locationLabel;
-      const lat = opts?.lat ?? userCoords?.lat;
-      const lng = opts?.lng ?? userCoords?.lng;
-
-      // Scanner-provided queries are tied to the scanned item's category;
-      // switching tabs falls back to the plain category search.
-      const itemQueries =
-        activeCategory === initialCategory && scannedQueries.length > 0
-          ? scannedQueries
-          : undefined;
-
-      const { places: results, error: searchError } = await searchPlaces({
-        categoryKey: activeCategory,
-        locationLabel: label,
-        lat,
-        lng,
-        item: scannedItem ?? undefined,
-        queries: itemQueries
-      });
-
-      // A newer search started while this one was in flight — discard.
-      if (seq !== searchSeqRef.current) return;
-
-      let sorted = results;
-      if (lat != null && lng != null) {
-        sorted = [...results]
-          .map((p) => ({
-            ...p,
-            distanceMiles: haversineDistance(lat, lng, p.lat, p.lng)
-          }))
-          .sort((a, b) => (a.distanceMiles ?? 0) - (b.distanceMiles ?? 0));
-      }
-
-      setPlaces(sorted);
-      setError(searchError ?? null);
-      setIsLoading(false);
-
-      if (lat != null && lng != null) {
-        saveLocationPrefs({
-          lat,
-          lng,
-          label,
-          category: activeCategory
-        });
-      }
-    },
-    [
-      activeCategory,
-      initialCategory,
-      isSearchable,
-      locationLabel,
-      userCoords,
-      scannedItem,
-      scannedQueries
-    ]
-  );
-
-  useEffect(() => {
-    setActiveCategory(initialCategory);
-  }, [initialCategory]);
-
-  // Keep the latest runSearch in a ref so the search effect below only fires
-  // on category/location-readiness changes — not on every keystroke in the
-  // location input (locationLabel is a runSearch dependency).
-  const runSearchRef = useRef(runSearch);
-  useEffect(() => {
-    runSearchRef.current = runSearch;
-  }, [runSearch]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function resolveLocation() {
-      if (!navigator.geolocation) {
-        setLocationReady(true);
-        return;
-      }
-
-      try {
-        const permission = await navigator.permissions.query({
-          name: "geolocation"
-        });
-
-        if (cancelled) return;
-
-        // "prompt" triggers the browser's permission dialog — without real
-        // coordinates the search can't be biased to truly nearby places.
-        if (permission.state === "granted" || permission.state === "prompt") {
-          navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              if (cancelled) return;
-              setUserCoords({
-                lat: pos.coords.latitude,
-                lng: pos.coords.longitude
-              });
-              setLocationLabel("Your location");
-              setGeoError(null);
-              setLocationReady(true);
-            },
-            () => {
-              if (cancelled) return;
-              setLocationReady(true);
-            },
-            {
-              enableHighAccuracy: true,
-              timeout: 10000,
-              maximumAge: 300000
-            }
-          );
-          return;
-        }
-      } catch {
-        // Permissions API unavailable — fall back to saved or manual location.
-      }
-
-      setLocationReady(true);
+  function choose(value: string) {
+    setChoice(value);
+    if (handoff) {
+      setScanChoice(handoff.ticket.id, handoff.itemIndex, value);
+      const ticket = { ...handoff.ticket, choices: { ...handoff.ticket.choices, [handoff.itemIndex]: value } };
+      router.replace(buildScanLocationsHref(ticket, handoff.itemIndex), { scroll: false });
+    } else {
+      params.set("condition", value);
+      router.replace(`/locations?${params}`, { scroll: false });
     }
+  }
 
-    resolveLocation();
+  function submitLookup(e: React.FormEvent) {
+    e.preventDefault();
+    if (lookup.trim()) router.push(`/locations?${new URLSearchParams({ item: lookup.trim() })}`);
+  }
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!locationReady) return;
-    runSearchRef.current();
-  }, [activeCategory, locationReady, scannedItem, scannedQueries]);
-
-  // Sub-category picks route through the same URL params the scanner uses
-  // (?item drives the item-specific Places query), keeping one search path.
-  const handleSelectSubcategory = (
-    key: LocationCategoryKey,
-    item: string
-  ) => {
-    router.push(`/locations?category=${key}&item=${encodeURIComponent(item)}`);
-  };
-
-  const filteredPlaces = useMemo(() => {
-    const q = listFilter.trim().toLowerCase();
-    if (!q) return places;
-    return places.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.address.toLowerCase().includes(q)
-    );
-  }, [places, listFilter]);
-
-  const handleUseMyLocation = () => {
-    if (!navigator.geolocation) {
-      setGeoError("Your browser cannot find your location.");
-      return;
-    }
-
-    setGeoError(null);
-    setIsLocating(true);
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        setIsLocating(false);
-        setUserCoords({ lat, lng });
-        setLocationLabel("Your location");
-        runSearch({ lat, lng, label: "Your location" });
-      },
-      () => {
-        setIsLocating(false);
-        setGeoError(
-          "We could not get your location. Type a city or zip code instead."
-        );
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
-    );
-  };
-
-  // Autocomplete suggestion picked: we have a real geocode, so distance
-  // sorting works the same as it does for device geolocation.
-  const handleLocationSelect = (selection: LocationSelection) => {
-    setGeoError(null);
-    setUserCoords({ lat: selection.lat, lng: selection.lng });
-    setLocationLabel(selection.label);
-    runSearch({
-      lat: selection.lat,
-      lng: selection.lng,
-      label: selection.label
-    });
-  };
-
-  // Enter pressed without picking a suggestion — geocode the typed text so
-  // distance sorting and location bias still work; only fall back to a plain
-  // text search if geocoding finds nothing.
-  const handleManualSubmit = async (label: string) => {
-    setGeoError(null);
-
-    if (typeof google !== "undefined" && google.maps?.Geocoder) {
-      try {
-        const geocoder = new google.maps.Geocoder();
-        const { results } = await geocoder.geocode({
-          address: label,
-          region: "us"
-        });
-        const location = results?.[0]?.geometry?.location;
-        if (location) {
-          const lat = location.lat();
-          const lng = location.lng();
-          const resolvedLabel = results[0].formatted_address ?? label;
-          setUserCoords({ lat, lng });
-          setLocationLabel(resolvedLabel);
-          runSearch({ lat, lng, label: resolvedLabel });
-          return;
-        }
-      } catch {
-        // Geocoder throws on ZERO_RESULTS — fall through to text search.
-      }
-    }
-
-    setUserCoords(null);
-    runSearch({ label });
-  };
-
-  const handleSelectPlace = (placeId: string) => {
-    setSelectedPlaceId(placeId);
-    cardRefs.current[placeId]?.scrollIntoView({
-      behavior: "smooth",
-      block: "nearest"
-    });
-  };
-
-  const handleExpandPlace = async (place: Place) => {
-    if (expandedDetails[place.id]) {
-      setExpandedDetails((prev) => {
-        const next = { ...prev };
-        delete next[place.id];
-        return next;
-      });
-      return;
-    }
-
-    // Curated entries carry their own details (phone); no Places lookup needed.
-    if (place.curated) {
-      setExpandedDetails((prev) => ({
-        ...prev,
-        [place.id]: { ...place, phone: place.phone }
-      }));
-      return;
-    }
-
-    setLoadingDetails((prev) => ({ ...prev, [place.id]: true }));
-    const { details, error: detailsError } = await getPlaceDetails(place.id);
-    setLoadingDetails((prev) => ({ ...prev, [place.id]: false }));
-
-    if (details) {
-      setExpandedDetails((prev) => ({
-        ...prev,
-        [place.id]: { ...details, distanceMiles: place.distanceMiles }
-      }));
-    } else if (detailsError) {
-      setError(detailsError);
-    }
-  };
-
-  // Curated entries have no Google Place ID, so route directions by coordinates.
-  // Google Places entries pass the place ID, but Maps ignores destination_place_id
-  // unless a destination is also present, so send the name/address alongside it.
-  const directionsUrl = (place: Place) =>
-    place.curated
-      ? `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`
-      : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${place.name}, ${place.address}`)}&destination_place_id=${encodeURIComponent(place.id)}`;
-
-  // Mobile: normal document flow — map first at a fixed height, then the
-  // list; the page scrolls. Desktop (lg): the old app-like split view where
-  // the page is viewport-locked and only the results list scrolls.
-  const content = (
-    <div className="dark min-h-screen bg-background flex flex-col lg:flex-row lg:max-h-screen p-4 lg:p-6 gap-4 lg:gap-6">
-      <Card className="w-full lg:w-1/3 lg:max-w-md flex flex-col border-border shadow-lg lg:max-h-[calc(100vh-3rem)]">
-        <CardHeader className="shrink-0">
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="text-primary" />
-            Find a Drop-Off Place
-          </CardTitle>
-          {scannedItem && category && (
-            <p className="text-sm text-muted-foreground mt-1">
-              {(activeCategory === initialCategory &&
-                scannedQueries.length > 0) ||
-              itemAffectsSearch(activeCategory, scannedItem)
-                ? "Showing drop-off locations that accept your "
-                : `Showing ${category.label} drop-offs for your `}
-              <span className="font-medium text-foreground">{scannedItem}</span>
-            </p>
-          )}
-        </CardHeader>
-
-        <CardContent className="flex-grow flex flex-col gap-4 overflow-hidden">
-          <div className="shrink-0">
-            {/* Not disabled while results load — typing must stay fluid even
-                mid-search; suggestions are debounced inside the component. */}
-            <LocationSearchInput
-              value={locationLabel}
-              onChange={setLocationLabel}
-              onSelectSuggestion={handleLocationSelect}
-              onManualSubmit={handleManualSubmit}
-              onUseMyLocation={handleUseMyLocation}
-              bias={userCoords}
-              isLocating={isLocating}
-            />
-          </div>
-
-          {geoError && (
-            <p className="text-sm text-amber-500 flex items-start gap-2 shrink-0">
-              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-              {geoError}
-            </p>
-          )}
-
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 shrink-0">
-            {LOCATION_CATEGORIES.map(({ key, label, icon: Icon }) => {
-              const subcategories = getItemSubcategories(key);
-              return (
-                <div key={key} className="flex">
-                  <Button
-                    variant={activeCategory === key ? "default" : "outline"}
-                    onClick={() => setActiveCategory(key)}
-                    className={`flex-1 min-w-0 items-center gap-1.5 text-xs px-2 ${
-                      subcategories.length > 0 ? "rounded-r-none" : ""
-                    }`}
-                    size="sm"
-                  >
-                    <Icon className="h-3.5 w-3.5 shrink-0" />
-                    {label}
-                  </Button>
-                  {subcategories.length > 0 && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-l-none border-l-0 px-1.5"
-                          aria-label={`${label} sub-categories`}
-                        >
-                          <ChevronDown className="h-3.5 w-3.5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {subcategories.map((sub) => (
-                          <DropdownMenuItem
-                            key={sub.item}
-                            onSelect={() =>
-                              handleSelectSubcategory(key, sub.item)
-                            }
-                          >
-                            {sub.label}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {showCurbsideNote && curbsideBin && (
-            <Card className={`p-4 shrink-0 border ${curbsideBin.accent}`}>
-              <p className="text-sm text-foreground flex items-start gap-2">
-                {CurbsideIcon && (
-                  <CurbsideIcon className="h-4 w-4 mt-0.5 shrink-0" />
-                )}
-                {curbsideBin.note}
-              </p>
-              {!isSearchable && (
-                <Button asChild variant="link" className="px-0 mt-2">
-                  <Link href="/cam">
-                    <Camera className="h-4 w-4 mr-1 inline" />
-                    Scan another item
-                  </Link>
-                </Button>
-              )}
-            </Card>
-          )}
-
-          {!isSearchable && category?.infoMessage && !showCurbsideNote && (
-            <Card className="p-4 bg-muted/50 shrink-0">
-              <p className="text-sm text-muted-foreground">
-                {category.infoMessage}
-              </p>
-              <Button asChild variant="link" className="px-0 mt-2">
-                <Link href="/cam">
-                  <Camera className="h-4 w-4 mr-1 inline" />
-                  Scan another item
-                </Link>
-              </Button>
-            </Card>
-          )}
-
-          {isSearchable && (
-            <>
-              <Input
-                placeholder="Filter results..."
-                value={listFilter}
-                onChange={(e) => setListFilter(e.target.value)}
-                className="shrink-0"
-              />
-
-              <div className="space-y-3 overflow-y-auto flex-1 min-h-0 pr-1">
-                {isLoading && (
-                  <>
-                    <p className="text-sm text-muted-foreground animate-pulse">
-                      Finding drop-off places near you...
-                    </p>
-                    {Array.from({ length: 4 }).map((_, i) => (
-                      <Card key={i} className="p-4 bg-muted/50">
-                        <div className="flex items-start gap-3">
-                          <Skeleton className="h-14 w-14 shrink-0 rounded-md" />
-                          <div className="min-w-0 flex-1 space-y-2">
-                            <Skeleton className="h-4 w-3/4" />
-                            <Skeleton className="h-4 w-1/2" />
-                            <div className="flex gap-2 pt-1">
-                              <Skeleton className="h-8 w-28" />
-                              <Skeleton className="h-8 w-20" />
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </>
-                )}
-
-                {!isLoading && error && (
-                  <Card className="p-4 bg-destructive/10 border-destructive/30">
-                    <p className="text-sm text-destructive flex items-start gap-2">
-                      <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                      {error}
-                    </p>
-                  </Card>
-                )}
-
-                {!isLoading && !error && filteredPlaces.length === 0 && (
-                  <Card className="p-4 bg-muted/50">
-                    <p className="text-sm text-muted-foreground">
-                      We did not find any places here. Try a different city widen your search, or switch categories.
-                    </p>
-                  </Card>
-                )}
-
-                {!isLoading &&
-                  filteredPlaces.map((place) => {
-                    const details = expandedDetails[place.id];
-                    const isExpanded = !!details;
-                    const isSelected = selectedPlaceId === place.id;
-
-                    return (
-                      <Card
-                        key={place.id}
-                        ref={(el) => {
-                          cardRefs.current[place.id] = el;
-                        }}
-                        className={`p-4 bg-muted/50 hover:bg-muted/80 transition-colors cursor-pointer ${
-                          isSelected ? "ring-2 ring-primary" : ""
-                        }`}
-                        onClick={() => setSelectedPlaceId(place.id)}
-                      >
-                        <div className="flex items-start gap-3">
-                          {/* Fixed-size thumbnail with lazy loading: on slow
-                              connections the card renders immediately and the
-                              photo fills in without shifting layout. */}
-                          {place.photoName && (
-                            <img
-                              src={`/api/place-photo?name=${encodeURIComponent(place.photoName)}&w=128`}
-                              alt=""
-                              loading="lazy"
-                              decoding="async"
-                              className="h-14 w-14 shrink-0 rounded-md bg-muted object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = "none";
-                              }}
-                            />
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-start justify-between gap-2">
-                              <h3 className="font-semibold text-foreground">
-                                {place.name}
-                              </h3>
-                              {place.distanceMiles != null && (
-                                <Badge variant="secondary" className="shrink-0">
-                                  {formatDistance(place.distanceMiles)}
-                                </Badge>
-                              )}
-                            </div>
-
-                            <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-                              <Compass className="h-4 w-4 shrink-0" />
-                              {place.address}
-                            </p>
-                          </div>
-                        </div>
-
-                        {place.note && (
-                          <p className="text-sm text-muted-foreground flex items-start gap-2 mt-1">
-                            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
-                            {place.note}
-                          </p>
-                        )}
-
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            asChild
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <a
-                              href={directionsUrl(place)}
-                              target="_blank"
-                              rel="noreferrer noopener"
-                            >
-                              <Navigation className="h-3.5 w-3.5 mr-1" />
-                              Directions
-                            </a>
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleExpandPlace(place);
-                            }}
-                            disabled={loadingDetails[place.id]}
-                          >
-                            {loadingDetails[place.id] ? (
-                              "Loading..."
-                            ) : isExpanded ? (
-                              <>
-                                <ChevronUp className="h-3.5 w-3.5 mr-1" />
-                                Less
-                              </>
-                            ) : (
-                              <>
-                                <ChevronDown className="h-3.5 w-3.5 mr-1" />
-                                Details
-                              </>
-                            )}
-                          </Button>
-                        </div>
-
-                        {isExpanded && details && (
-                          <div className="mt-3 pt-3 border-t border-border/50 space-y-2 text-sm">
-                            {details.openNow != null && (
-                              <p className="flex items-center gap-2">
-                                <Clock className="h-4 w-4" />
-                                {details.openNow ? (
-                                  <span className="text-green-500">
-                                    Open now
-                                  </span>
-                                ) : (
-                                  <span className="text-muted-foreground">
-                                    Closed now
-                                  </span>
-                                )}
-                              </p>
-                            )}
-                            {details.phone && (
-                              <p className="flex items-center gap-2">
-                                <Phone className="h-4 w-4" />
-                                <a
-                                  href={`tel:${details.phone}`}
-                                  className="text-primary underline"
-                                >
-                                  {details.phone}
-                                </a>
-                              </p>
-                            )}
-                            {details.website && (
-                              <p className="flex items-center gap-2">
-                                <Globe className="h-4 w-4" />
-                                <a
-                                  href={details.website}
-                                  target="_blank"
-                                  rel="noreferrer noopener"
-                                  className="text-primary underline truncate"
-                                >
-                                  Website
-                                </a>
-                              </p>
-                            )}
-                            {details.weekdayDescriptions &&
-                              details.weekdayDescriptions.length > 0 && (
-                                <ul className="text-muted-foreground space-y-0.5">
-                                  {details.weekdayDescriptions.map((line) => (
-                                    <li key={line}>{line}</li>
-                                  ))}
-                                </ul>
-                              )}
-                          </div>
-                        )}
-                      </Card>
-                    );
-                  })}
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="order-first lg:order-last h-[45vh] min-h-[280px] shrink-0 lg:h-auto lg:min-h-0 lg:shrink lg:flex-grow rounded-lg overflow-hidden relative shadow-lg">
-        {!mapsApiKey ? (
-          <div className="flex h-full min-h-[300px] items-center justify-center rounded-lg bg-muted/30 p-6 text-center text-sm text-muted-foreground">
-            Add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to .env.local to enable the
-            interactive map and location search.
-          </div>
-        ) : isSearchable ? (
-          <LocationsMap
-            places={filteredPlaces}
-            userLat={userCoords?.lat}
-            userLng={userCoords?.lng}
-            selectedPlaceId={selectedPlaceId}
-            onSelectPlace={handleSelectPlace}
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center bg-muted/20 p-8 text-center">
-            <div>
-              <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">
-                No map needed for this disposal type.
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Try a searchable category like Recycling, E-Waste, or Hazardous
-                Waste.
-              </p>
-            </div>
-          </div>
+  return (
+    <div className="mx-auto min-h-screen max-w-4xl px-5 pb-12 pt-24 sm:px-8">
+      {name ? <>
+        <div className="mb-5 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+          {handoff && <Link href={buildScanHref(handoff.ticket.id, handoff.itemIndex)} className="inline-flex items-center gap-1.5 text-primary"><ArrowLeft size={15} /> Back to scan</Link>}
+          <Link href="/locations" className="text-muted-foreground underline underline-offset-4">Browse another item</Link>
+        </div>
+        <header className="mb-5">
+          <p className="mb-1 text-sm text-muted-foreground">{handoff ? getScanSourceLabel(handoff.ticket.classifier) : "San Diego disposal guide"}</p>
+          <h1 className="break-words text-3xl font-semibold tracking-tight sm:text-4xl">{name}</h1>
+          {handoff?.item.material && <p className="mt-1 text-sm text-muted-foreground">{handoff.item.material}</p>}
+        </header>
+        {handoff && handoff.ticket.items.length > 1 && (
+          <label className="mb-4 flex flex-wrap items-center gap-2 text-sm">Item from this scan
+            <select className="max-w-full rounded-md border bg-card p-2" value={handoff.itemIndex}
+              onChange={e => router.push(buildScanLocationsHref(handoff.ticket, Number(e.target.value)))}>
+              {handoff.ticket.items.map((entry, index) => <option key={index} value={index}>{index + 1}. {entry.name}</option>)}
+            </select>
+          </label>
         )}
-      </div>
+        {guide ? <LocalDisposalGuide guidance={guide} choice={choice} onChoice={choose} /> :
+          <section className="space-y-2 rounded-xl border bg-card p-5">
+            <h2 className="text-xl font-semibold">{curbside ? `Suggested destination · ${bin}` : "Confirm the disposal route"}</h2>
+            {handoff?.item.caveats && <p className="text-sm">{handoff.item.caveats}</p>}
+            <p className="text-sm text-muted-foreground">Check the exact material and condition in the regional directory before disposing of it.</p>
+            <a href={directory} target="_blank" rel="noreferrer" className="inline-block text-sm text-primary underline">Look up the item on WasteFreeSD ↗</a>
+          </section>}
+        {handoff && (handoff.ticket.note || handoff.ticket.guidance || handoff.item.caveats || handoff.item.confidence > 0) && (
+          <details className="mt-4 rounded-xl border px-4 py-3 text-sm">
+            <summary className="cursor-pointer font-medium">Original scan details</summary>
+            <dl className="mt-3 space-y-3 leading-relaxed">
+              {handoff.item.confidence > 0 && <div><dt className="text-muted-foreground">Estimated identification confidence</dt><dd>{Math.round(handoff.item.confidence * 100)}%</dd></div>}
+              {handoff.ticket.note && <div><dt className="text-muted-foreground">Your description</dt><dd>{handoff.ticket.note}</dd></div>}
+              {handoff.item.caveats && <div><dt className="text-muted-foreground">Item observation</dt><dd>{handoff.item.caveats}</dd></div>}
+              {handoff.ticket.guidance && <div><dt className="text-muted-foreground">Whole-scan summary</dt><dd>{handoff.ticket.guidance}</dd></div>}
+            </dl>
+          </details>
+        )}
+      </> : <>
+        <p className="mb-2 flex items-center gap-1.5 text-sm font-medium text-primary"><MapPin size={16} /> San Diego</p>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Household disposal guide</h1>
+        <form className="my-5 flex gap-2" onSubmit={submitLookup}>
+          <Input value={lookup} maxLength={160} aria-label="Household item" placeholder="Enter an item, e.g. propane canister"
+            onChange={e => setLookup(e.target.value)} />
+          <Button type="submit" disabled={!lookup.trim()}><Search size={16} /> Look up</Button>
+        </form>
+        <MaterialShortcuts />
+        <Link className="mt-4 inline-flex items-center gap-2 text-sm text-primary underline underline-offset-4" href="/cam"><Camera size={16} /> Scan or describe an item</Link>
+        <label className="mt-8 block text-sm font-medium">Browse by category
+          <select className="mt-2 block w-full rounded-md border bg-card p-2.5 text-sm"
+            value={category?.key ?? "recycle"} onChange={e => router.push(`/locations?${e.target.value.startsWith("category=") ? e.target.value : new URLSearchParams({ category: e.target.value })}`)}>
+            {LOCATION_CATEGORIES.map(group => <optgroup key={group.key} label={group.label}>
+              <option value={group.key}>{group.label}</option>
+              {getItemSubcategories(group.key).map(sub =>
+                <option key={sub.item} value={new URLSearchParams({ category: group.key, item: sub.item }).toString()}>{sub.label}</option>)}
+            </optgroup>)}
+          </select>
+        </label>
+        {category && !category.searchable && <p className="mt-4 rounded-lg border p-4 text-sm">{category.infoMessage}</p>}
+      </>}
+      {canSearch && category && <NearbyLocations key={`${name}-${choice}-${category.key}`} categoryKey={category.key}
+        item={guide?.lookupItem ?? name} queries={queries} />}
     </div>
-  );
-
-  return mapsApiKey ? (
-    <APIProvider apiKey={mapsApiKey} libraries={["places"]}>
-      {content}
-    </APIProvider>
-  ) : (
-    content
   );
 }
 
+// History is device-local. Resolve it before starting a search so that a stale
+// public link cannot trigger a generic search ahead of a saved condition.
+function LocationsRoute() {
+  const params = useSearchParams();
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
+  const query = params.toString();
+  return ready ? <LocationsGuide key={query} query={query} /> : <LoadingGuide />;
+}
+
+function LoadingGuide() {
+  return <p role="status" className="mx-auto max-w-4xl px-5 pt-24 text-muted-foreground">Opening disposal guide…</p>;
+}
+
 export default function LocationsPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="dark min-h-screen bg-background p-6">
-          <Skeleton className="h-[80vh] w-full" />
-        </div>
-      }
-    >
-      <LocationsPageContent />
-    </Suspense>
-  );
+  return <Suspense fallback={<LoadingGuide />}><LocationsRoute /></Suspense>;
 }

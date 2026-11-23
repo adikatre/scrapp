@@ -159,8 +159,8 @@ const BRANCH_SEEDS: BranchSeed[] = [
 /** Prep requirement carried on each branch card (from the County flyer). */
 const BATTERY_PREP_NOTE = "Tape the terminal ends before drop-off.";
 
-/** San Diego County Library site, shown in each branch's expanded details. */
-const COUNTY_LIBRARY_WEBSITE = "https://www.sdcl.org";
+/** County recycling program lists the participating branches and accepted cells. */
+const COUNTY_LIBRARY_WEBSITE = "https://www.sandiegocounty.gov/content/sdc/dpw/recycling/hhw/uwaste.html";
 
 const PLACES: Place[] = BRANCH_SEEDS.map((b) => ({
   ...b,
@@ -183,8 +183,7 @@ const CATEGORY_KEYS: LocationCategoryKey[] = ["hazardous", "e_waste"];
 /**
  * Show these branches only when disposing of household batteries (hazardous or
  * e-waste) within San Diego County — detected from real coordinates when
- * available, else from a location label mentioning San Diego (covers the page's
- * default label).
+ * available. Without coordinates, selectPlaces matches the typed city or ZIP.
  *
  * Household only: the branch collection boxes are sized for AAs and phone
  * batteries, so an e-bike pack or a car battery has to go elsewhere (see
@@ -198,7 +197,7 @@ function matches(input: CuratedMatchInput): boolean {
     return isWithinBounds(input.lat, input.lng, SAN_DIEGO_COUNTY_BOUNDS);
   }
 
-  return /san diego/i.test(input.locationLabel ?? "");
+  return true;
 }
 
 export const sanDiegoBatteryProgram: CuratedProvider = {

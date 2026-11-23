@@ -28,9 +28,19 @@ export const CURATED_PROVIDERS: CuratedProvider[] = [
 function selectPlaces(provider: CuratedProvider, input: CuratedMatchInput): Place[] {
   const { nearestLimit } = provider;
   const { lat, lng } = input;
-  if (nearestLimit == null || lat == null || lng == null) {
-    return provider.places;
+  if (lat == null || lng == null) {
+    // Without a geocode, match a city or ZIP in the program's addresses.
+    // A regional provider can include sites hundreds of miles apart.
+    const [locality, region] = (input.locationLabel ?? "").toLowerCase().split(",").map(part => part.trim());
+    if (!locality || (region && !/^(?:ca|california)(?: \d{5})?$/.test(region))) return [];
+    const zip = /^\d{5}$/.test(locality);
+    const matches = provider.places.filter(place => {
+      const city = place.address.split(",")[1]?.trim().toLowerCase();
+      return city === locality || (zip && place.address.endsWith(" " + locality));
+    });
+    return matches.slice(0, nearestLimit ?? matches.length);
   }
+  if (nearestLimit == null) return provider.places;
   return [...provider.places]
     .sort(
       (a, b) =>

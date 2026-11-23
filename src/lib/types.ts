@@ -16,6 +16,7 @@ export type ClassifierMetadata = {
   model: string;
   source: string;
   fallback_used: boolean;
+  basis?: "image" | "note" | "image_and_note" | "detections" | "note_and_detections" | "none";
 };
 
 export type Detection = {
@@ -71,13 +72,12 @@ export type SavedLocationPrefs = {
 
 export type ScanTicket = {
   id: string;
-  image: string | null;
-  note?: string;
-  guidance: string;
-  disposalRoute: string;
-  /** San Diego household destination, e.g. "Blue Bin (Recycling)" */
-  bin?: string;
-  itemName: string;
-  searchQueries?: string[];
   timestamp: Date;
+  note?: string;
+  /** Whole-scan summary; each selected item's details live in items. */
+  guidance: string;
+  items: ClassifiedItem[];
+  classifier?: ClassifierMetadata;
+  /** Answers to the local guide's condition question, keyed by item index. */
+  choices?: Record<number, string>;
 };

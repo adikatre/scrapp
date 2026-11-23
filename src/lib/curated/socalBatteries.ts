@@ -73,20 +73,14 @@ function toPlace(site: SiteRecord): Place {
   };
 }
 
-const HOUSEHOLD_MATERIALS = new Set(["rechargeable", "singleuse", "cellphones"]);
-const EBIKE_MATERIALS = new Set(["ebike", "highenergybattery"]);
-const CELLPHONE_MATERIALS = new Set(["cellphones"]);
-
-function acceptsAny(site: SiteRecord, wanted: Set<string>): boolean {
-  return site.materials.some((m) => wanted.has(m));
-}
-
-const HOUSEHOLD_PLACES: Place[] = SITES.filter((s) =>
-  acceptsAny(s, HOUSEHOLD_MATERIALS)
+// The scan can identify a household cell without knowing its chemistry. Every
+// site offered for that result must accept both primary and rechargeable cells.
+const HOUSEHOLD_PLACES: Place[] = SITES.filter((site) =>
+  site.materials.includes("singleuse") && site.materials.includes("rechargeable")
 ).map(toPlace);
 
-const EBIKE_PLACES: Place[] = SITES.filter((s) =>
-  acceptsAny(s, EBIKE_MATERIALS)
+const EBIKE_PLACES: Place[] = SITES.filter((site) =>
+  site.materials.includes("ebike")
 ).map(toPlace);
 
 /**
@@ -94,8 +88,8 @@ const EBIKE_PLACES: Place[] = SITES.filter((s) =>
  * not necessarily take a whole handset, so a phone only goes to sites that
  * explicitly collect them.
  */
-const CELLPHONE_PLACES: Place[] = SITES.filter((s) =>
-  acceptsAny(s, CELLPHONE_MATERIALS)
+const CELLPHONE_PLACES: Place[] = SITES.filter((site) =>
+  site.materials.includes("cellphones")
 ).map(toPlace);
 
 /** Rough bounding box covering the swept SoCal counties. */
@@ -105,10 +99,6 @@ const SOCAL_BOUNDS: GeoBounds = {
   minLng: -121.4,
   maxLng: -115.4
 };
-
-/** Counties in the snapshot, used as the label fallback when coords are absent. */
-const COUNTY_LABEL_PATTERN =
-  /san diego|los angeles|orange|riverside|san bernardino|ventura|santa barbara|san luis obispo|kern|imperial/i;
 
 /** Battery disposal is routed to these categories by the classifier/frontend. */
 const CATEGORY_KEYS: LocationCategoryKey[] = ["hazardous", "e_waste"];
@@ -120,7 +110,8 @@ function isInSocal(input: CuratedMatchInput): boolean {
     return isWithinBounds(input.lat, input.lng, SOCAL_BOUNDS);
   }
 
-  return COUNTY_LABEL_PATTERN.test(input.locationLabel ?? "");
+  // selectPlaces matches the submitted city or ZIP against site addresses.
+  return true;
 }
 
 export const socalHouseholdBatteryProgram: CuratedProvider = {
